@@ -239,7 +239,7 @@ class SystemLevelScenario(Object):
         r"""
         Distance between each UT and each BS [m].
         [batch size, number of BSs, number of UTs]"""
-        return self._distance_2d
+        return self._distance_3d
 
     @property
     def distance_3d_in(self):

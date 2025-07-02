@@ -1,0 +1,89 @@
+{
+    "muDSa" : 0.0,
+    "muDSb" : 0.0,
+    "muDSc" : 0.0,
+
+    "sigmaDSa" : 0.0,
+    "sigmaDSb" : 0.0,
+    "sigmaDSc" : 0.0,
+
+    "muASDa" : 0.0,
+    "muASDb" : 0.0,
+    "muASDc" : 0.0,
+
+    "sigmaASDa" : 0.0,
+    "sigmaASDb" : 0.0,
+    "sigmaASDc" : 0.0,
+
+    "muASAa" : 0.0,
+    "muASAb" : 0.0,
+    "muASAc" : 0.0,
+
+    "sigmaASAa" : 0.0,
+    "sigmaASAb" : 0.0,
+    "sigmaASAc" : 0.0,
+
+    "muZSAa" : 0.0,
+    "muZSAb" : 0.0,
+    "muZSAc" : 0.0,
+
+    "sigmaZSAa" : 0.0,
+    "sigmaZSAb" : 0.0,
+    "sigmaZSAc" : 0.0,
+
+    "muK" : 0.0,
+    "sigmaK" : 0.0,
+
+    "muXPR" : 0.0,
+    "sigmaXPR" : 0.0,
+
+    "sigmaSF" : 0.0,
+
+    "sigmaZSD" : 0.0,
+
+    "numClusters" : 0,
+
+    "rTau" : 0.0,
+
+    "zeta" : 0.0,
+
+    "cDSa" : 0.0,
+    "cDSb" : 0.0,
+    "cDSc" : 0.0,
+    "cASD" : 0.0,
+    "cASA" : 0.0,
+    "cZSA" : 0.0,
+
+    "CPhiNLoS" : 0.0,
+    "CThetaNLoS" : 0.0,
+
+    "corrDistDS" : 0,
+    "corrDistASD" : 0,
+    "corrDistASA" : 0,
+    "corrDistSF" : 0,
+    "corrDistK" : 0,
+    "corrDistZSA" : 0,
+    "corrDistZSD" : 0,
+
+    "corrASDvsDS" : 0.0,
+    "corrASAvsDS" : 0.0,
+    "corrASAvsSF" : 0.0,
+    "corrASDvsSF" : 0.0,
+    "corrDSvsSF" : 0.0,
+    "corrASDvsASA" : 0.0,
+    "corrASDvsK" : 0.0,
+    "corrASAvsK" : 0.0,
+    "corrDSvsK" : 0.0,
+    "corrSFvsK" : 0.0,
+    "corrZSDvsSF" : 0.0,
+    "corrZSAvsSF" : 0.0,
+    "corrZSDvsK" : 0.0,
+    "corrZSAvsK" : 0.0,
+    "corrZSDvsDS" : 0.0,
+    "corrZSAvsDS" : 0.0,
+    "corrZSDvsASD" : 0.0,
+    "corrZSAvsASD" : 0.0,
+    "corrZSDvsASA" : 0.0,
+    "corrZSAvsASA" : 0.0,
+    "corrZSDvsZSA": 0.0
+}
