@@ -172,7 +172,7 @@ class SystemLevelChannel(ChannelModel):
     def __call__(self,
                  num_time_samples,
                  sampling_frequency,
-                 foo=None):
+                 foo=None, ignore_nlos=False):
 
         # Some channel layers (GenerateOFDMChannel and GenerateTimeChannel)
         # give as input (batch_size, num_time_samples, sampling_frequency)
@@ -256,13 +256,15 @@ class SystemLevelChannel(ChannelModel):
             # We do not transpose the others to reduce complexity
             k_factor = tf.transpose(lsp.k_factor, [0, 2, 1])
             sf = tf.transpose(lsp.sf, [0, 2, 1])
+            ed = tf.transpose(lsp.ed, [0, 2, 1])
         else:
             k_factor = lsp.k_factor
             sf = lsp.sf
+            ed = lsp.ed
 
         # pylint: disable=unbalanced-tuple-unpacking
         h, delays = self._cir_sampler(num_time_samples, sampling_frequency,
-                                      k_factor, rays, topology, c_ds)
+                                      k_factor, rays, topology, c_ds, ed, ignore_nlos)
 
         # Step 12
         h = self._step_12(h, sf)

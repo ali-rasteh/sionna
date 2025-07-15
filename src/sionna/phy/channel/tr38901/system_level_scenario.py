@@ -68,7 +68,7 @@ class SystemLevelScenario(Object):
             self.rdtype)
 
         # O2I model
-        assert o2i_model in ('low', 'high'), "o2i_model must be 'low' or 'high'"
+        assert o2i_model in ('low', 'high', '50/50'), "o2i_model must be 'low' or 'high' or '50/50'"
         self._o2i_model = o2i_model
 
         # UTs and BSs arrays
@@ -550,7 +550,7 @@ class SystemLevelScenario(Object):
     @property
     def o2i_model(self):
         r"""O2I model used for pathloss computation of indoor UTs. Either "low"
-        or "high". See section 7.4.3 or TR 38.901."""
+        or "high" or "50/50". See section 7.4.3 or TR 38.901."""
         return self._o2i_model
 
     @abstractmethod

@@ -7,6 +7,7 @@ channel simulation scenario and LSPs
 """
 
 import tensorflow as tf
+from tensorflow_probability import distributions as tfd
 
 from sionna.phy import config
 from sionna.phy.block import Object
@@ -26,6 +27,9 @@ class Rays(Object):
     powers : [batch size, number of BSs, number of UTs, number of clusters], `tf.float`
         Normalized path powers
 
+    s_trp : [batch size, number of BSs, number of UTs, number of clusters], `tf.float`
+        Scaling factors for near field channel modeling
+
     aoa : (batch size, number of BSs, number of UTs, number of clusters, number of rays], `tf.float`
         Azimuth angles of arrival [radian]
 
@@ -41,7 +45,7 @@ class Rays(Object):
     xpr [batch size, number of BSs, number of UTs, number of clusters, number of rays], `tf.float`
         Coss-polarization power ratios.
     """
-    def __init__(self, delays, powers, aoa, aod, zoa, zod, xpr):
+    def __init__(self, delays, s_trp, powers, aoa, aod, zoa, zod, xpr):
         self.delays = delays
         self.powers = powers
         self.aoa = aoa
@@ -49,6 +53,7 @@ class Rays(Object):
         self.zoa = zoa
         self.zod = zod
         self.xpr = xpr
+        self.s_trp = s_trp
         super().__init__()
 
 class RaysGenerator(Object):
@@ -142,8 +147,11 @@ class RaysGenerator(Object):
         zoa = deg_2_rad(zoa)
         zod = deg_2_rad(zod)
 
+        s_trp = self._scale_transmission_reception_point(powers)
+
         # Storing and returning rays
         rays = Rays(delays = delays,
+                    s_trp  = s_trp,
                     powers = powers,
                     aoa    = aoa,
                     aod    = aod,
@@ -812,3 +820,52 @@ class RaysGenerator(Object):
         cross_polarization_power_ratios = tf.math.pow(tf.constant(10.,
             self.rdtype), x/10.0)
         return cross_polarization_power_ratios
+
+
+    def _scale_transmission_reception_point(self, powers):
+        # pylint: disable=line-too-long
+        """
+        Randomly generates scaling factors for near-filed channel modling.
+
+        See section 7.6.13 from TR 38.901 specification release 19.
+
+        Input
+        ------
+        powers : [batch size, num of BSs, num of UTs, maximum number of clusters], tf.float
+            Normalized path powers
+
+        Output
+        -------
+        scale_transmission_reception_point : [batch size, num of BSs, num of UTs, maximum number of clusters], tf.float
+            Scaling factors independently generated for each cluster and each BS-UT link.
+        """
+
+        scenario = self._scenario
+
+        batch_size = scenario.batch_size
+        num_bs = scenario.num_bs
+        num_ut = scenario.num_ut
+        num_clusters = scenario.num_clusters_max
+
+        # Loading the s_trp parameters from the scenario
+        (k1, alpha, beta) = scenario.s_trp_parameters
+
+        # Creating the beta distribution and sampling from it
+        beta_dist = tfd.Beta(concentration1=alpha, concentration0=beta)
+        scale_transmission_reception_point = beta_dist.sample([batch_size, num_bs, num_ut, num_clusters])
+
+        # Finding the indices of the top K clusters based on their powers
+        top_k = tf.math.top_k(powers, k=k1)
+        top_k_indices = top_k.indices
+
+        # One-hot encode top K indices along the last dimension and sum them to create a mask
+        one_hot_mask = tf.reduce_sum(tf.one_hot(top_k_indices, depth=num_clusters, axis=-1), axis=-2)
+
+        # Set corresponding positions in scale_transmission_reception_point to 1 according to the TR38.901 specification
+        scale_transmission_reception_point = tf.where(one_hot_mask > 0, tf.ones_like(scale_transmission_reception_point), scale_transmission_reception_point)
+
+        return scale_transmission_reception_point
+
+
+
+

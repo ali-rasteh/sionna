@@ -64,6 +64,7 @@
     "corrDistK" : 1,
     "corrDistZSA" : 10,
     "corrDistZSD" : 10,
+    "corrDistED" : 15,
 
     "corrASDvsDS" : 0.0,
     "corrASAvsDS" : 0.4,

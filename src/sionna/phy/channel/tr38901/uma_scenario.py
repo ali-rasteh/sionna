@@ -103,6 +103,16 @@ class UMaScenario(SystemLevelScenario):
     def rays_per_cluster(self):
         r"""Number of rays per cluster"""
         return tf.constant(20, tf.int32)
+    
+    @property
+    def s_trp_parameters(self):
+        r"""Tuple containing the parameters for the Near-Field (NF) S_TRP model
+        
+        (K1, Alpha, Beta)"""
+
+        return (2,
+                tf.constant(1.93, self.rdtype),
+                tf.constant(1.33, self.rdtype))
 
     @property
     def los_parameter_filepath(self):
@@ -157,6 +167,10 @@ class UMaScenario(SystemLevelScenario):
                                                     self.rdtype),
             -2.1*(distance_2d/1000.0) - 0.01*tf.abs(h_ut-1.5)+0.9)
         log_mean_zsd = tf.where(self.los, log_mean_zsd_los, log_mean_zsd_nlos)
+        # Excess delay for absolute time of arrival (ToA) estimation
+        log_mean_ed_nlos = tf.constant(-7.4, self.rdtype)
+        log_mean_ed_los = tf.constant(-30.0, self.rdtype)
+        log_mean_ed = tf.where(self.los, log_mean_ed_los, log_mean_ed_nlos)
 
         lsp_log_mean = tf.stack([log_mean_ds,
                                 log_mean_asd,
@@ -164,7 +178,8 @@ class UMaScenario(SystemLevelScenario):
                                 log_mean_sf,
                                 log_mean_k,
                                 log_mean_zsa,
-                                log_mean_zsd], axis=3)
+                                log_mean_zsd,
+                                log_mean_ed], axis=3)
 
         ## STD
         # DS
@@ -182,6 +197,10 @@ class UMaScenario(SystemLevelScenario):
         log_std_zsa = self.get_param("sigmaZSA")
         # ZSD
         log_std_zsd = self.get_param("sigmaZSD")
+        # Excess delay for absolute time of arrival (ToA) estimation
+        log_std_ed_nlos = tf.constant(0.2, self.rdtype)
+        log_std_ed_los = tf.constant(0.01, self.rdtype)
+        log_std_ed = tf.where(self.los, log_std_ed_los, log_std_ed_nlos)
 
         lsp_log_std = tf.stack([log_std_ds,
                                log_std_asd,
@@ -189,7 +208,8 @@ class UMaScenario(SystemLevelScenario):
                                log_std_sf,
                                log_std_k,
                                log_std_zsa,
-                               log_std_zsd], axis=3)
+                               log_std_zsd,
+                               log_std_ed], axis=3)
 
         self._lsp_log_mean = lsp_log_mean
         self._lsp_log_std = lsp_log_std

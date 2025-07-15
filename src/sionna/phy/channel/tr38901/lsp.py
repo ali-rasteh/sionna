@@ -38,8 +38,11 @@ class LSP(Object):
 
     zsd: [batch size, num tx, num rx], `tf.float`
         Zenith angle spread of departure [deg]
+
+    ed: [batch size, num tx, num rx], `tf.float`
+        Excess delay in the absolute time of arrival [s]
     """
-    def __init__(self, ds, asd, asa, sf, k_factor, zsa, zsd):
+    def __init__(self, ds, asd, asa, sf, k_factor, zsa, zsd, ed):
         self.ds = ds
         self.asd = asd
         self.asa = asa
@@ -47,6 +50,7 @@ class LSP(Object):
         self.k_factor = k_factor
         self.zsa = zsa
         self.zsd = zsd
+        self.ed = ed
         super().__init__()
 
 class LSPGenerator(Object):
@@ -102,8 +106,13 @@ class LSPGenerator(Object):
         ## O2I penetration
         if self._scenario.o2i_model == 'low':
             pl_o2i = self._o2i_low_loss()
-        else: # 'high'
+        elif self._scenario.o2i_model == 'high': # 'high'
             pl_o2i = self._o2i_high_loss()
+        elif self._scenario.o2i_model == '50/50':
+            pl_o2i = self._o2i_50_50_loss()
+        else:
+            raise ValueError("Unknown O2I model: {}".format(
+                self._scenario.o2i_model))
 
         ## Total path loss, including O2I penetration
         pl = pl_b + pl_o2i
@@ -119,7 +128,7 @@ class LSPGenerator(Object):
 
         s = config.tf_rng.normal(shape=[self._scenario.batch_size,
                                         self._scenario.num_bs,
-                                        self._scenario.num_ut, 7],
+                                        self._scenario.num_ut, 8],
                                         dtype=self.rdtype)
 
         ## Applyting cross-LSP correlation
@@ -152,7 +161,8 @@ class LSPGenerator(Object):
                   sf=lsp[:, :, :, 3],
                   k_factor=lsp[:, :, :, 4],
                   zsa=tf.math.minimum(lsp[:, :, :, 5], 52.0),
-                  zsd=tf.math.minimum(lsp[:, :, :, 6], 52.0)
+                  zsd=tf.math.minimum(lsp[:, :, :, 6], 52.0),
+                  ed=lsp[:, :, :, 7]
                   )
 
         return lsp
@@ -191,8 +201,8 @@ class LSPGenerator(Object):
         matrix square root for filtering.
 
         The resulting tensor is of shape
-        [batch size, number of BSs, number of UTs, 7, 7)
-        7 being the number of LSPs to correlate.
+        [batch size, number of BSs, number of UTs, 8, 8)
+        8 being the number of LSPs to correlate.
 
         Input
         ------
@@ -203,10 +213,10 @@ class LSPGenerator(Object):
         None
         """
 
-        # The following 7 LSPs are correlated:
+        # The following 8 LSPs are correlated:
         # DS, ASA, ASD, SF, K, ZSA, ZSD
         # We create the correlation matrix initialized to the identity matrix
-        cross_lsp_corr_mat = tf.eye(7, 7,batch_shape=[self._scenario.batch_size,
+        cross_lsp_corr_mat = tf.eye(8, 8,batch_shape=[self._scenario.batch_size,
             self._scenario.num_bs, self._scenario.num_ut],
             dtype=self.rdtype)
 
@@ -228,11 +238,11 @@ class LSPGenerator(Object):
         # ``cross_lsp_corr_mat`` the parameter ``parameter_name`` at location
         # (m,n)
         def _add_param(mat, parameter_name, m, n):
-            # Mask to put the parameters in the right spot of the 7x7
+            # Mask to put the parameters in the right spot of the 8x8
             # correlation matrix
             mask = tf.scatter_nd([[m, n], [n, m]],
-                                 tf.constant([1.0, 1.0], self.rdtype), [7, 7])
-            mask = tf.reshape(mask, [1,1,1,7,7])
+                                 tf.constant([1.0, 1.0], self.rdtype), [8, 8])
+            mask = tf.reshape(mask, [1,1,1,8,8])
             # Get the parameter value according to the link scenario
             update = self._scenario.get_param(parameter_name)
             update = tf.expand_dims(tf.expand_dims(update, axis=3), axis=4)
@@ -311,8 +321,8 @@ class LSPGenerator(Object):
         distance) and D_X the correlation distance of LSP X.
 
         The resulting tensor if of shape
-        [batch size, number of BSs, 7, number of UTs, number of UTs)
-        7 being the number of LSPs.
+        [batch size, number of BSs, 8, number of UTs, number of UTs)
+        8 being the number of LSPs.
 
         Input
         ------
@@ -347,7 +357,7 @@ class LSPGenerator(Object):
         filtering_matrices = []
         distance_scaling_matrices = []
         for parameter_name in ('corrDistDS', 'corrDistASD', 'corrDistASA',
-            'corrDistSF', 'corrDistK', 'corrDistZSA', 'corrDistZSD'):
+            'corrDistSF', 'corrDistK', 'corrDistZSA', 'corrDistZSD', 'corrDistED'):
             # Matrix used for filtering and scaling the 2D distances
             # For each pair of UTs, the entry is set to 0 if the UTs are in
             # different states, -1/(correlation distance) otherwise.
@@ -501,3 +511,47 @@ class LSPGenerator(Object):
         pl_rnd = pl_rnd*indoor_mask
 
         return pl_tw + pl_in + pl_rnd
+    
+
+    def _o2i_50_50_loss(self):
+        fc = self._scenario.carrier_frequency/1e9 # Carrier frequency (GHz)
+        batch_size = self._scenario.batch_size
+        num_ut = self._scenario.num_ut
+        num_bs = self._scenario.num_bs
+
+        # Filtering-out the O2I pathloss for outdoor UTs
+        indoor_mask = tf.where(self._scenario.indoor, 1.0,
+            tf.zeros([batch_size, num_ut], self.rdtype))
+        indoor_mask = tf.expand_dims(indoor_mask, axis=1)
+
+        # Find indices where indoor_mask == 1
+        indoor_indices = tf.where(tf.equal(indoor_mask, 1.0))
+        indoor_indices = tf.cast(indoor_indices, dtype=tf.int32)
+
+        # Shuffle indices
+        shuffled_indices = tf.random.shuffle(indoor_indices)
+
+        # Split into two groups: 50/50
+        num_indoor = tf.shape(shuffled_indices)[0]
+        half = num_indoor // 2
+
+        indices_1 = shuffled_indices[:half]
+        indices_2 = shuffled_indices[half:]
+
+        updates_1 = tf.ones([tf.shape(indices_1)[0]], dtype=indoor_mask.dtype)
+        updates_2 = tf.ones([tf.shape(indices_2)[0]], dtype=indoor_mask.dtype)
+
+        # Create two masks of the same shape as indoor_mask
+        mask_1 = tf.scatter_nd(indices_1, updates_1, tf.shape(indoor_mask))
+        mask_2 = tf.scatter_nd(indices_2, updates_2, tf.shape(indoor_mask))
+        # mask_1 = tf.tensor_scatter_nd_update(tf.zeros_like(indoor_mask), indices_1, tf.cast(tf.ones_like(indices_1[:, 0]), dtype=indoor_mask.dtype))
+        # mask_2 = tf.tensor_scatter_nd_update(tf.zeros_like(indoor_mask), indices_2, tf.cast(tf.ones_like(indices_2[:, 0]), dtype=indoor_mask.dtype))
+
+        low_loss = self._o2i_low_loss()
+        high_loss = self._o2i_high_loss()
+
+        # Combine the two masks with the corresponding pathlosses
+        # pl_50_50 = tf.where(mask_1, low_loss, high_loss)
+        pl_50_50 = tf.where(tf.equal(mask_1, 1.0), low_loss, high_loss)
+
+        return pl_50_50

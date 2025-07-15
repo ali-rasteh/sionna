@@ -171,7 +171,7 @@ class ChannelCoefficientsGenerator(Object):
         self._sub_cl_delay_offsets = tf.constant([0, 1.28, 2.56], self.rdtype)
 
     def __call__(self, num_time_samples, sampling_frequency, k_factor, rays,
-                 topology, c_ds=None, debug=False):
+                 topology, c_ds=None, ed=None, ignore_nlos=False, debug=False):
         # Sample times
         sample_times = (tf.range(num_time_samples,
                 dtype=self.rdtype)/sampling_frequency)
@@ -180,8 +180,15 @@ class ChannelCoefficientsGenerator(Object):
         phi = self._step_10(tf.shape(rays.aoa))
 
         # Step 11
-        h, delays = self._step_11(phi, topology, k_factor, rays, sample_times,
-                                                                        c_ds)
+        if ignore_nlos:
+            h = self._step_11_los(topology, sample_times)
+            n_batch = h.shape[0]
+            n_tx = h.shape[1]
+            n_rx = h.shape[2]
+            delays = tf.zeros([n_batch, n_tx, n_rx, 1], self.rdtype)
+        else:
+            h, delays = self._step_11(phi, topology, k_factor, rays, sample_times,
+                                                                            c_ds, ed)
 
         # Return additional information if requested
         if debug:
@@ -572,7 +579,7 @@ class ChannelCoefficientsGenerator(Object):
         # [batch size, num_tx, num rx, num clusters, num rays, num time steps]
         return h_doppler
 
-    def _step_11_array_offsets(self, topology, aoa, aod, zoa, zod):
+    def _step_11_array_offsets(self, topology, aoa, aod, zoa, zod, d1):
         # pylint: disable=line-too-long
         r"""
         Compute matrix accounting for phases offsets between antenna elements
@@ -643,14 +650,21 @@ class ChannelCoefficientsGenerator(Object):
         exp_rx = tf.exp(tf.complex(tf.constant(0.,
                                     self.rdtype), exp_rx))
 
-        # The hack is for some reason not needed for this term
-        # exp_tx = 2*PI/lambda_0*tf.reduce_sum(r_hat_tx*d_bar_tx,
-        #     axis=-1, keepdims=True)
-        exp_tx = 2*PI/lambda_0*tf.reduce_sum(r_hat_tx*d_bar_tx,
-            axis=-1)
-        exp_tx = tf.exp(tf.complex(tf.constant(0.,
-                                    self.rdtype), exp_tx))
-        exp_tx = tf.expand_dims(exp_tx, -2)
+
+        near_field = False
+        if near_field: # Near field
+            # Check: if this is center to center distance
+            d3d = topology.distance_3d
+            c = tf.constant(299792458.0, dtype=self.rdtype)
+        else:
+            # The hack is for some reason not needed for this term
+            # exp_tx = 2*PI/lambda_0*tf.reduce_sum(r_hat_tx*d_bar_tx,
+            #     axis=-1, keepdims=True)
+            exp_tx = 2*PI/lambda_0*tf.reduce_sum(r_hat_tx*d_bar_tx,
+                axis=-1)
+            exp_tx = tf.exp(tf.complex(tf.constant(0.,
+                                        self.rdtype), exp_tx))
+            exp_tx = tf.expand_dims(exp_tx, -2)
 
         h_array = exp_rx*exp_tx
 
@@ -783,7 +797,39 @@ class ChannelCoefficientsGenerator(Object):
 
         return h_field
 
-    def _step_11_nlos(self, phi, topology, rays, t):
+
+    def _step_11_d1(self, topology, rays, ed):
+        # pylint: disable=line-too-long
+        r"""
+        Computes distance d_1 according to the section 7.6.13 of TR 38.901 specification
+        to compute the near field channel model.
+
+        Input
+        -----
+        topology : Topology
+            Topology of the network
+
+        rays : Rays
+            Rays
+
+        ed: [batch size, num TX, num RX], `tf.float`
+            Excess delay in the absolute time of arrival [s]
+
+        Output
+        ------
+        d1 : [batch size, num TXs, num RXs, num clusters, num rays]
+            d1 distance in the equation 7.6-47
+        """
+
+        d3d = topology.distance_3d
+        c = tf.constant(299792458.0, dtype=self.rdtype)
+        s_trp = rays.s_trp
+        
+
+
+
+
+    def _step_11_nlos(self, phi, topology, rays, t, ed=None):
         # pylint: disable=line-too-long
         r"""
         Compute the full NLOS channel matrix (7.5-28)
@@ -802,6 +848,9 @@ class ChannelCoefficientsGenerator(Object):
         t : [num time samples], tf.float
             Time samples
 
+        ed: [batch size, num TX, num RX], `tf.float`
+            Excess delay in the absolute time of arrival [s]
+
         Output
         ------
         h_full : [batch size, num_tx, num rx, num clusters, num rays, num rx antennas, num tx antennas, num time steps], tf.complex
@@ -811,8 +860,9 @@ class ChannelCoefficientsGenerator(Object):
         h_phase = self._step_11_phase_matrix(phi, rays)
         h_field = self._step_11_field_matrix(topology, rays.aoa, rays.aod,
                                                     rays.zoa, rays.zod, h_phase)
+        d1 = self._step_11_d1(topology, rays, ed)
         h_array = self._step_11_array_offsets(topology, rays.aoa, rays.aod,
-                                                            rays.zoa, rays.zod)
+                                                            rays.zoa, rays.zod, d1)
         h_doppler = self._step_11_doppler_matrix(topology, rays.aoa, rays.zoa,
                                                                             t)
         h_full = tf.expand_dims(h_field*h_array, -1) * tf.expand_dims(
@@ -975,7 +1025,7 @@ class ChannelCoefficientsGenerator(Object):
         h_los = h_field*h_array*h_doppler*h_delay
         return h_los
 
-    def _step_11(self, phi, topology, k_factor, rays, t, c_ds):
+    def _step_11(self, phi, topology, k_factor, rays, t, c_ds, ed=None):
         # pylint: disable=line-too-long
         r"""
         Combine LOS and LOS components to compute (7.5-30)
@@ -999,9 +1049,12 @@ class ChannelCoefficientsGenerator(Object):
 
         c_ds : [batch size, num TX, num RX], tf.float
             Cluster delay spread
+
+        ed: [batch size, num TX, num RX], `tf.float`
+            Excess delay in the absolute time of arrival [s]
         """
 
-        h_full = self._step_11_nlos(phi, topology, rays, t)
+        h_full = self._step_11_nlos(phi, topology, rays, t, ed)
         h_nlos, delays_nlos = self._step_11_reduce_nlos(h_full, rays, c_ds)
 
         ####  LoS scenario
