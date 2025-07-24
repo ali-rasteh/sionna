@@ -1,30 +1,30 @@
 #
 # SPDX-FileCopyrightText: Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0#
-"""Urban macrocell (UMa) channel model from 3GPP TR38.901 specification"""
+"""Indoor-open office channel model from 3GPP TR38.901 specification"""
 
-from . import SystemLevelChannel
-from . import UMaScenario
+from sionna.phy.channel.tr38901 import SystemLevelChannel
+from . import InHOpenOfficeScenario
 
-class UMa(SystemLevelChannel):
+class InHOpenOffice(SystemLevelChannel):
     # pylint: disable=line-too-long
     r"""
-    Urban macrocell (UMa) channel model from 3GPP [TR38901]_ specification.
+    Indoor-open office channel model from 3GPP [TR38901]_ specification
 
-    Setting up a UMa model requires configuring the network topology, i.e., the
+    Setting up a InHOpenOffice model requires configuring the network topology, i.e., the
     UTs and BSs locations, UTs velocities, etc. This is achieved using the
-    :meth:`~sionna.phy.channel.tr38901.UMa.set_topology` method. Setting a different
+    :meth:`~sionna.phy.channel.tr38901.InHOpenOffice.set_topology` method. Setting a different
     topology for each batch example is possible. The batch size used when setting up the network topology
     is used for the link simulations.
 
-    The following code snippet shows how to setup an UMa channel model assuming
-    an OFDM waveform:
+    The following code snippet shows how to setup a InHOpenOffice channel model operating
+    in the frequency domain:
 
     >>> # UT and BS panel arrays
     >>> bs_array = PanelArray(num_rows_per_panel = 4,
     ...                       num_cols_per_panel = 4,
     ...                       polarization = 'dual',
-    ...                       polarization_type = 'cross',
+    ...                       polarization_type  = 'cross',
     ...                       antenna_pattern = '38.901',
     ...                       carrier_frequency = 3.5e9)
     >>> ut_array = PanelArray(num_rows_per_panel = 1,
@@ -33,8 +33,8 @@ class UMa(SystemLevelChannel):
     ...                       polarization_type = 'V',
     ...                       antenna_pattern = 'omni',
     ...                       carrier_frequency = 3.5e9)
-    >>> # Instantiating UMa channel model
-    >>> channel_model = UMa(carrier_frequency = 3.5e9,
+    >>> # Instantiating InHOpenOffice channel model
+    >>> channel_model = InHOpenOffice(carrier_frequency = 3.5e9,
     ...                     o2i_model = 'low',
     ...                     ut_array = ut_array,
     ...                     bs_array = bs_array,
@@ -51,7 +51,7 @@ class UMa(SystemLevelChannel):
     ...                            bs_orientations,
     ...                            ut_velocities,
     ...                            in_state)
-    >>> # Instanting the OFDM channel
+    >>> # Instanting the frequency domain channel
     >>> channel = OFDMChannel(channel_model = channel_model,
     ...                       resource_grid = rg)
 
@@ -113,11 +113,11 @@ class UMa(SystemLevelChannel):
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
         direction, enable_pathloss=True, enable_shadow_fading=True,
-        always_generate_lsp=False, release_number="19.0.0", precision=None):
+        always_generate_lsp=False, precision=None):
 
         # RMa scenario
-        scenario = UMaScenario(carrier_frequency, o2i_model, ut_array, bs_array,
-                               direction, enable_pathloss, enable_shadow_fading, release_number,
-                               precision=precision)
+        scenario = InHOpenOfficeScenario(carrier_frequency, o2i_model, ut_array, bs_array,
+                               direction, enable_pathloss, enable_shadow_fading,
+                               precision)
 
         super().__init__(scenario, always_generate_lsp)

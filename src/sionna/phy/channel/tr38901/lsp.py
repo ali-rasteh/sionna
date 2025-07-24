@@ -110,9 +110,6 @@ class LSPGenerator(Object):
             pl_o2i = self._o2i_high_loss()
         elif self._scenario.o2i_model == '50/50':
             pl_o2i = self._o2i_50_50_loss()
-        else:
-            raise ValueError("Unknown O2I model: {}".format(
-                self._scenario.o2i_model))
 
         ## Total path loss, including O2I penetration
         pl = pl_b + pl_o2i
@@ -482,7 +479,9 @@ class LSPGenerator(Object):
 
         # Material penetration losses
         # fc must be in GHz
-        l_iirglass = 23. + 0.3*fc
+        # l_iirglass = 23. + 0.3*fc
+        # Release 19
+        l_iirglass = 25.4 + 0.11*fc
         l_concrete = 5. + 4.*fc
 
         # Path loss through external wall

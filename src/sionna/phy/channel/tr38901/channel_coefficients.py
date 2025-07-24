@@ -579,7 +579,7 @@ class ChannelCoefficientsGenerator(Object):
         # [batch size, num_tx, num rx, num clusters, num rays, num time steps]
         return h_doppler
 
-    def _step_11_array_offsets(self, topology, aoa, aod, zoa, zod, d1):
+    def _step_11_array_offsets(self, topology, aoa, aod, zoa, zod, d1=None):
         # pylint: disable=line-too-long
         r"""
         Compute matrix accounting for phases offsets between antenna elements
@@ -651,20 +651,23 @@ class ChannelCoefficientsGenerator(Object):
                                     self.rdtype), exp_rx))
 
 
-        near_field = False
-        if near_field: # Near field
-            # Check: if this is center to center distance
-            d3d = topology.distance_3d
-            c = tf.constant(299792458.0, dtype=self.rdtype)
+        near_field = (d1 is not None)
+        if near_field:
+            print("Using near-field approximation for the TX antenna array")
+            d1 = tf.reshape(d1, tf.concat([tf.shape(d1), [1, 1]], axis=0))
+            dist = tf.sqrt(tf.reduce_sum(tf.square(d1 * r_hat_tx - d_bar_tx), axis=-1))
+            d1 = tf.reshape(d1, d1.shape[:-1])
+            exp_tx = 2*PI/lambda_0*(d1 - dist)
         else:
             # The hack is for some reason not needed for this term
             # exp_tx = 2*PI/lambda_0*tf.reduce_sum(r_hat_tx*d_bar_tx,
             #     axis=-1, keepdims=True)
             exp_tx = 2*PI/lambda_0*tf.reduce_sum(r_hat_tx*d_bar_tx,
                 axis=-1)
-            exp_tx = tf.exp(tf.complex(tf.constant(0.,
-                                        self.rdtype), exp_tx))
-            exp_tx = tf.expand_dims(exp_tx, -2)
+            
+        exp_tx = tf.exp(tf.complex(tf.constant(0.,
+                                    self.rdtype), exp_tx))
+        exp_tx = tf.expand_dims(exp_tx, -2)
 
         h_array = exp_rx*exp_tx
 
@@ -798,7 +801,7 @@ class ChannelCoefficientsGenerator(Object):
         return h_field
 
 
-    def _step_11_d1(self, topology, rays, ed):
+    def _step_11_d1(self, topology, rays, c_ds, ed):
         # pylint: disable=line-too-long
         r"""
         Computes distance d_1 according to the section 7.6.13 of TR 38.901 specification
@@ -821,15 +824,69 @@ class ChannelCoefficientsGenerator(Object):
             d1 distance in the equation 7.6-47
         """
 
+        # Check if it refers to the 3D distance between reference point at TRP and UT side
         d3d = topology.distance_3d
         c = tf.constant(299792458.0, dtype=self.rdtype)
         s_trp = rays.s_trp
+        powers = rays.powers
+        delays = rays.delays
+        num_clusters = tf.shape(rays.aoa)[-2]
+        num_rays = tf.shape(rays.aoa)[-1]
+
+        # print("d3d", d3d.shape)
+        # print("s_trp", s_trp.shape)
+        # print("ed", ed.shape)
+        # print("powers", powers.shape)
+        # print("delays", delays.shape)
+        # print("c_ds", c_ds.shape)
+
+
+        delays_rays = tf.expand_dims(delays, axis=-1)
+        delays_rays = tf.tile(delays_rays, multiples=[1, 1, 1, 1, num_rays])
+        # print("delays_rays", delays.shape)
+
+
+        _, strongest_clusters_ind = tf.math.top_k(powers, k=2, sorted=False)
+        # print("strongest_clusters_ind", strongest_clusters_ind.shape)
+        # One-hot encode top 2 indices along the last dimension and sum them to create a mask
+        strongest_clusters_mask = tf.reduce_sum(tf.one_hot(strongest_clusters_ind, depth=num_clusters, axis=-1), axis=-2)
+        strongest_clusters_mask = tf.expand_dims(strongest_clusters_mask, axis=-1)
+        strongest_clusters_mask = tf.tile(strongest_clusters_mask, multiples=[1, 1, 1, 1, num_rays])
+        # print("strongest_clusters_mask", strongest_clusters_mask.shape)
+        # print(strongest_clusters_mask[0,0,0,0,:])
+        # print(strongest_clusters_mask[0,0,0,:,0])
+        # print(strongest_clusters_mask[0,0,0,:,:])
+
+        mask_sub_cl_1 = tf.reduce_any(
+            tf.equal(tf.range(num_rays)[tf.newaxis, :], self._sub_cl_1_ind[:, tf.newaxis]), axis=0)
+        mask_sub_cl_2 = tf.reduce_any(
+            tf.equal(tf.range(num_rays)[tf.newaxis, :], self._sub_cl_2_ind[:, tf.newaxis]), axis=0)
+        mask_sub_cl_3 = tf.reduce_any(
+            tf.equal(tf.range(num_rays)[tf.newaxis, :], self._sub_cl_3_ind[:, tf.newaxis]), axis=0)
+        # print("mask_sub_cl_1", mask_sub_cl_1.shape)
+        # print("mask_sub_cl_1", mask_sub_cl_1)
+        mask_sub_cl_1 = tf.reshape(mask_sub_cl_1, [1, 1, 1, 1, -1]) * strongest_clusters_mask
+        mask_sub_cl_2 = tf.reshape(mask_sub_cl_2, [1, 1, 1, 1, -1]) * strongest_clusters_mask
+        mask_sub_cl_3 = tf.reshape(mask_sub_cl_3, [1, 1, 1, 1, -1]) * strongest_clusters_mask
+        # print("mask_sub_cl_1", mask_sub_cl_1.shape)
+        # print("mask_sub_cl_1", mask_sub_cl_1[0,0,0,:,:])
+
+        c_ds_rays = tf.expand_dims(tf.expand_dims(c_ds, axis=-1), axis=-1)
+        delays_rays = tf.where(mask_sub_cl_1, delays_rays+self._sub_cl_delay_offsets[0]*c_ds_rays, delays_rays)
+        delays_rays = tf.where(mask_sub_cl_2, delays_rays+self._sub_cl_delay_offsets[1]*c_ds_rays, delays_rays)
+        delays_rays = tf.where(mask_sub_cl_3, delays_rays+self._sub_cl_delay_offsets[2]*c_ds_rays, delays_rays)
+        # print("delays_rays", delays_rays.shape)
+
+
+        d_1 = tf.expand_dims(s_trp, axis=-1) * (tf.expand_dims(tf.expand_dims(d3d, axis=-1), axis=-1) + tf.expand_dims(tf.expand_dims(ed, axis=-1), axis=-1)*c + delays_rays*c)
+
+        return d_1
         
 
 
 
 
-    def _step_11_nlos(self, phi, topology, rays, t, ed=None):
+    def _step_11_nlos(self, phi, topology, rays, t, c_ds, ed=None):
         # pylint: disable=line-too-long
         r"""
         Compute the full NLOS channel matrix (7.5-28)
@@ -860,7 +917,8 @@ class ChannelCoefficientsGenerator(Object):
         h_phase = self._step_11_phase_matrix(phi, rays)
         h_field = self._step_11_field_matrix(topology, rays.aoa, rays.aod,
                                                     rays.zoa, rays.zod, h_phase)
-        d1 = self._step_11_d1(topology, rays, ed)
+        # d1 = self._step_11_d1(topology, rays, c_ds, ed)
+        d1 = None
         h_array = self._step_11_array_offsets(topology, rays.aoa, rays.aod,
                                                             rays.zoa, rays.zod, d1)
         h_doppler = self._step_11_doppler_matrix(topology, rays.aoa, rays.zoa,
@@ -1054,7 +1112,7 @@ class ChannelCoefficientsGenerator(Object):
             Excess delay in the absolute time of arrival [s]
         """
 
-        h_full = self._step_11_nlos(phi, topology, rays, t, ed)
+        h_full = self._step_11_nlos(phi, topology, rays, t, c_ds, ed)
         h_nlos, delays_nlos = self._step_11_reduce_nlos(h_full, rays, c_ds)
 
         ####  LoS scenario

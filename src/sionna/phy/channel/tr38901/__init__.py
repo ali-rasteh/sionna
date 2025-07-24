@@ -13,10 +13,12 @@ from .system_level_scenario import SystemLevelScenario
 from .rma_scenario import RMaScenario
 from .umi_scenario import UMiScenario
 from .uma_scenario import UMaScenario
+from .inh_open_office_scenario import InHOpenOfficeScenario
 from .channel_coefficients import Topology, ChannelCoefficientsGenerator
 from .system_level_channel import SystemLevelChannel
 from .rma import RMa
 from .uma import UMa
 from .umi import UMi
+from .inh_open_office import InHOpenOffice
 from .tdl import TDL
 from .cdl import CDL

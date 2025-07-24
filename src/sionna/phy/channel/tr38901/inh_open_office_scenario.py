@@ -1,17 +1,17 @@
 #
 # SPDX-FileCopyrightText: Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0#
-"""3GPP TR39.801 urban macrocell (UMa) channel model"""
+"""3GPP TR39.801 Indoor-open office channel model."""
 
 import tensorflow as tf
 
-from sionna.phy import SPEED_OF_LIGHT, config
+from sionna.phy import SPEED_OF_LIGHT
 from sionna.phy.utils import log10
-from . import SystemLevelScenario
+from sionna.phy.channel.tr38901 import SystemLevelScenario
 
-class UMaScenario(SystemLevelScenario):
+class InHOpenOfficeScenario(SystemLevelScenario):
     r"""
-    3GPP TR 38.901 urban macrocell (UMa) channel model scenario
+    3GPP TR 38.901 Indoor-open office channel model scenario
 
     Parameters
     -----------
@@ -66,13 +66,15 @@ class UMaScenario(SystemLevelScenario):
 
     @property
     def min_2d_in(self):
-        r"""Minimum indoor 2D distance for indoor UTs [m]"""
+        r"""Minimum indoor 2D distance for indoor UTs [m],
+        Never used in this scenario, but required by the base class."""
         return tf.constant(0.0, self.rdtype)
 
     @property
     def max_2d_in(self):
-        r"""Maximum indoor 2D distance for indoor UTs [m]"""
-        return tf.constant(25.0, self.rdtype)
+        r"""Maximum indoor 2D distance for indoor UTs [m],
+        Never used in this scenario, but required by the base class."""
+        return tf.constant(0.0, self.rdtype)
 
     @property
     def los_probability(self):
@@ -83,60 +85,50 @@ class UMaScenario(SystemLevelScenario):
 
         [batch size, num_ut]"""
 
-        h_ut = self.h_ut
-        c = tf.math.pow((h_ut-13.)/10., 1.5)
-        c = tf.where(tf.math.less(h_ut, 13.0),
-                        tf.constant(0., self.rdtype), c)
-        c = tf.expand_dims(c, axis=1)
+        distance_2d_in = self._distance_2d_in
+        
+        cond1 = distance_2d_in <= 5.0
+        cond2 = tf.logical_and(distance_2d_in > 5.0, distance_2d_in <= 49.0)
+        cond3 = distance_2d_in > 49.0
 
-        distance_2d_out = self._distance_2d_out
-        los_probability = ((18.0/distance_2d_out
-            + tf.math.exp(-distance_2d_out/63.0)*(1.-18./distance_2d_out))
-            *(1.+c*5./4.*tf.math.pow(distance_2d_out/100., 3)
-                *tf.math.exp(-distance_2d_out/150.0)))
+        los_probability_1 = tf.ones_like(distance_2d_in)
+        los_probability_2 = tf.exp(-(distance_2d_in-5.)/70.8)
+        los_probability_3 = tf.exp(-(distance_2d_in-49.)/211.7) * 0.54
 
-        los_probability = tf.where(tf.math.less(distance_2d_out, 18.0),
-            tf.constant(1.0, self.rdtype), los_probability)
+        los_probability = tf.where(cond1, los_probability_1,
+                    tf.where(cond2, los_probability_2, los_probability_3))
+        
         return los_probability
 
     @property
     def rays_per_cluster(self):
         r"""Number of rays per cluster"""
         return tf.constant(20, tf.int32)
-    
+
     @property
     def s_trp_parameters(self):
         r"""Tuple containing the parameters for the Near-Field (NF) S_TRP model
         
         (K1, Alpha, Beta)"""
 
-        return (2,
-                tf.constant(1.93, self.rdtype),
-                tf.constant(1.33, self.rdtype))
+        return (4,
+                tf.constant(1.25, self.rdtype),
+                tf.constant(1.27, self.rdtype))
 
     @property
     def los_parameter_filepath(self):
         r""" Path of the configuration file for LoS scenario"""
-        if self.release_number=="18.0.0":
-            return "UMa_LoS.json"
-        elif self.release_number=="19.0.0":
-            return 'UMa_LoS_rel19.json'
+        return 'InHOpenOffice_LoS.json'
 
     @property
     def nlos_parameter_filepath(self):
         r""" Path of the configuration file for NLoS scenario"""
-        if self.release_number=="18.0.0":
-            return"UMa_NLoS.json"
-        elif self.release_number=="19.0.0":
-            return 'UMa_NLoS_rel19.json'
+        return'InHOpenOffice_NLoS.json'
 
     @property
     def o2i_parameter_filepath(self):
         r""" Path of the configuration file for indoor scenario"""
-        if self.release_number=="18.0.0":
-            return "UMa_O2I.json"
-        elif self.release_number=="19.0.0":
-            return 'UMa_O2I_rel19.json'
+        return 'InHOpenOffice_O2I.json'
 
     #########################
     # Utility methods
@@ -153,6 +145,7 @@ class UMaScenario(SystemLevelScenario):
         h_bs = tf.expand_dims(h_bs, axis=2) # For broadcasting
         h_ut = self.h_ut
         h_ut = tf.expand_dims(h_ut, axis=1) # For broadcasting
+        fc = self.carrier_frequency
 
         ## Mean
         # DS
@@ -169,15 +162,11 @@ class UMaScenario(SystemLevelScenario):
         # ZSA
         log_mean_zsa = self.get_param("muZSA")
         # ZSD
-        log_mean_zsd_los = tf.math.maximum(tf.constant(-0.5,
-                                                    self.rdtype),
-            -2.1*(distance_2d/1000.0) - 0.01*tf.abs(h_ut-1.5)+0.75)
-        log_mean_zsd_nlos = tf.math.maximum(tf.constant(-0.5,
-                                                    self.rdtype),
-            -2.1*(distance_2d/1000.0) - 0.01*tf.abs(h_ut-1.5)+0.9)
+        log_mean_zsd_los = -1.43 * log10(1.+fc/1e9) + 2.228
+        log_mean_zsd_nlos = tf.constant(1.08, self.rdtype),
         log_mean_zsd = tf.where(self.los, log_mean_zsd_los, log_mean_zsd_nlos)
         # Excess delay for absolute time of arrival (ToA) estimation
-        log_mean_ed_nlos = tf.constant(-7.4, self.rdtype)
+        log_mean_ed_nlos = tf.constant(-8.6, self.rdtype)
         log_mean_ed_los = tf.constant(-30.0, self.rdtype)
         log_mean_ed = tf.where(self.los, log_mean_ed_los, log_mean_ed_nlos)
 
@@ -205,9 +194,12 @@ class UMaScenario(SystemLevelScenario):
         # ZSA
         log_std_zsa = self.get_param("sigmaZSA")
         # ZSD
-        log_std_zsd = self.get_param("sigmaZSD")
+        # log_std_zsd = self.get_param("sigmaZSD")
+        log_std_zsd_los = 0.13 * log10(1+fc/1e9) + 0.30
+        log_std_zsd_nlos = tf.constant(0.36, self.rdtype)
+        log_std_zsd = tf.where(self.los, log_std_zsd_los, log_std_zsd_nlos)
         # Excess delay for absolute time of arrival (ToA) estimation
-        log_std_ed_nlos = tf.constant(0.2, self.rdtype)
+        log_std_ed_nlos = tf.constant(0.1, self.rdtype)
         log_std_ed_los = tf.constant(0.01, self.rdtype)
         log_std_ed = tf.where(self.los, log_std_ed_los, log_std_ed_nlos)
 
@@ -224,25 +216,14 @@ class UMaScenario(SystemLevelScenario):
         self._lsp_log_std = lsp_log_std
 
         # ZOD offset
-        fc = self.carrier_frequency/1e9
-        if fc < 6.:
-            fc = tf.cast(6., self.rdtype)
-        a = 0.208*log10(fc)-0.782
-        b = tf.constant(25., self.rdtype)
-        c = -0.13*log10(fc)+2.03
-        e = 7.66*log10(fc)-5.96
-        zod_offset =(e-tf.math.pow(tf.constant(10., self.rdtype),
-            a*log10(tf.maximum(b, distance_2d)) + c - 0.07*(h_ut-1.5)))
-        zod_offset = tf.where(self.los,
-                            tf.constant(0., self.rdtype),zod_offset)
+        zod_offset_los = tf.constant(0.0, self.rdtype)
+        zod_offset_nlos = tf.constant(0.0, self.rdtype)
+        zod_offset = tf.where(self.los, zod_offset_los, zod_offset_nlos)
         self._zod_offset = zod_offset
 
     def _compute_pathloss_basic(self):
         r"""Computes the basic component of the pathloss [dB]"""
 
-        batch_size = self.batch_size
-        num_bs = self.num_bs
-        num_ut = self.num_ut
         distance_2d = self.distance_2d
         distance_3d = self.distance_3d
         fc = self.carrier_frequency # Carrier frequency (Hz)
@@ -251,54 +232,15 @@ class UMaScenario(SystemLevelScenario):
         h_ut = self.h_ut
         h_ut = tf.expand_dims(h_ut, axis=1) # For broadcasting
 
-        # Beak point distance
-        g = ((5./4.)*tf.math.pow(distance_2d/100., 3.)
-            *tf.math.exp(-distance_2d/150.0))
-        g = tf.where(tf.math.less(distance_2d, 18.),
-            tf.constant(0.0, self.rdtype), g)
-        c = g*tf.math.pow((h_ut-13.)/10., 1.5)
-        c = tf.where(tf.math.less(h_ut, 13.),
-            tf.constant(0., self.rdtype), c)
-        p = 1./(1.+c)
-        r = config.tf_rng.uniform(shape=[batch_size, num_bs, num_ut],
-            minval=0.0, maxval=1.0, dtype=self.rdtype)
-        r = tf.where(tf.math.less(r, p),
-            tf.constant(1.0, self.rdtype),
-            tf.constant(0.0, self.rdtype))
-
-        max_value = h_ut- 1.5
-        # Random uniform integer generation is not supported when maxval and
-        # are not scalar. The following commented would therefore not work.
-        # Therefore, for now, we just sample from a continuous
-        # distribution.
-        #delta = tf.cast(tf.math.floor((max_value-min_value)/3.), tf.int32)
-        #s = tf_rng.uniform(shape=[batch_size, num_bs, num_ut],
-        #    minval=0, maxval=delta+1, dtype=tf.int32)
-        #s = tf.cast(s, tf.float32)*3.+min_value
-        s = config.tf_rng.uniform(shape=[batch_size, num_bs, num_ut],
-           minval=12., maxval=max_value, dtype=self.rdtype)
-        # Itc could happen that h_ut = 13m, and therefore max_value < 13m
-        s = tf.where(tf.math.less(s, 12.0),
-            tf.constant(12.0, self.rdtype), s)
-
-        h_e = r + (1.-r)*s
-        h_bs_prime = h_bs - h_e
-        h_ut_prime = h_ut - h_e
-        distance_breakpoint = 4*h_bs_prime*h_ut_prime*fc/SPEED_OF_LIGHT
 
         ## Basic path loss for LoS
 
-        pl_1 = 28.0 + 22.0*log10(distance_3d) + 20.0*log10(fc/1e9)
-        pl_2 = (28.0 + 40.0*log10(distance_3d) + 20.0*log10(fc/1e9)
-         - 9.0*log10(tf.square(distance_breakpoint)+tf.square(h_bs-h_ut)))
-        pl_los = tf.where(tf.math.less(distance_2d, distance_breakpoint),
-            pl_1, pl_2)
+        pl_los = 32.4 + 17.3*log10(distance_3d) + 20.0*log10(fc/1e9)
 
         ## Basic pathloss for NLoS and O2I
 
-        pl_3 = (13.54 + 39.08*log10(distance_3d) + 20.0*log10(fc/1e9)
-            - 0.6*(h_ut-1.5))
-        pl_nlos = tf.math.maximum(pl_los, pl_3)
+        pl_1 = 38.3*log10(distance_3d) + 17.3 + 24.9*log10(fc/1e9)
+        pl_nlos = tf.math.maximum(pl_los, pl_1)
 
         ## Set the basic pathloss according to UT state
 
@@ -307,3 +249,21 @@ class UMaScenario(SystemLevelScenario):
         pl_b = tf.where(self.los, pl_los, pl_nlos)
 
         self._pl_b = pl_b
+
+
+    def _sample_indoor_distance(self):
+        r"""Set indoor distances equal to the total distances and
+        outdoor distances to zero, because this scenario
+        does not consider outdoor UTs.
+        """
+        # Sample the indoor 2D distances for each BS-UT link
+        self._distance_2d_in = self.distance_2d
+        # Compute the outdoor 2D distances
+        self._distance_2d_out = tf.zeros_like(self.distance_2d, dtype=self.rdtype)
+        # Compute the indoor 3D distances
+        self._distance_3d_in = self.distance_3d
+        # Compute the outdoor 3D distances
+        self._distance_3d_out = tf.zeros_like(self.distance_3d, dtype=self.rdtype)
+
+
+

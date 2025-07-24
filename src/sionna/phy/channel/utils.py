@@ -568,12 +568,13 @@ def drop_uts_in_sector(batch_size,
     ut_height = tf.cast(ut_height, rdtype)
 
     # Force the minimum BS-UT distance >= their height difference
-    d_min = tf.maximum(d_min, tf.abs(bs_height - ut_height))
+    # d_min = tf.maximum(d_min, tf.abs(bs_height - ut_height))
 
     r = tf.cast(isd*0.5, rdtype)
 
     # Minimum squared distance between BS and UT on the X-Y plane
-    r_min2 = d_min**2 - (bs_height - ut_height)**2
+    # r_min2 = d_min**2 - (bs_height - ut_height)**2
+    r_min2 = d_min**2
 
     # Angles from (-pi/6, pi/6), covering half of the sector and denoted by
     # alpha_half, are randomly sampled for all UTs.
@@ -619,6 +620,7 @@ def drop_uts_in_sector(batch_size,
 
 
 def set_3gpp_scenario_parameters(scenario,
+                                 mode=None,
                                  min_bs_ut_dist=None,
                                  isd=None,
                                  bs_height=None,
@@ -638,8 +640,11 @@ def set_3gpp_scenario_parameters(scenario,
 
     Input
     --------
-    scenario : "uma" | "umi" | "rma" | "uma-calibration" | "umi-calibration"
+    scenario : "uma" | "umi" | "rma" | inh-open-office | "uma-calibration" | "umi-calibration | inh-open-office-calibration"
         System level model scenario
+
+    mode : "phase1" | "phase2-config1" | "phase2-config2" | "nearfield-config1A" | "nearfield-config1B" | "nearfield-config2A" | "nearfield-config2B"
+        Mode of calibration.
 
     min_bs_ut_dist : `None` (default) | `tf.float`
         Minimum BS-UT distance [m]
@@ -697,8 +702,8 @@ def set_3gpp_scenario_parameters(scenario,
         Maximim UT velocity [m/s]
     """
 
-    assert scenario in ('umi', 'uma', 'rma', 'umi-calibration', 'uma-calibration'), \
-        "`scenario` must be one of 'umi', 'uma', 'rma', 'umi-calibration', 'uma-calibration'"
+    assert scenario in ('umi', 'uma', 'rma', 'inh-open-office', 'umi-calibration', 'uma-calibration', 'inh-open-office-calibration'), \
+        "`scenario` must be one of 'umi', 'uma', 'rma', 'inh-open-office', 'umi-calibration', 'uma-calibration', 'inh-open-office-calibration'"
 
     if precision is None:
         rdtype = config.tf_rdtype
@@ -708,58 +713,105 @@ def set_3gpp_scenario_parameters(scenario,
     # Default values for scenario parameters.
     # All distances and heights are in meters
     # All velocities are in meters per second.
-    default_scenario_par = {
-        'umi': {
-            'min_bs_ut_dist': tf.constant(10., rdtype),
-            'isd': tf.constant(200., rdtype),
-            'bs_height': tf.constant(10., rdtype),
-            'min_ut_height': tf.constant(1.5, rdtype),
-            'max_ut_height': tf.constant(1.5, rdtype),
-            'indoor_probability': tf.constant(0.8, rdtype),
-            'min_ut_velocity': tf.constant(0.0, rdtype),
-            'max_ut_velocity': tf.constant(0.0, rdtype)
-        },
+    if mode is not None and mode.startswith("nearfield"):
+        default_scenario_par = {
         'umi-calibration': {
-            'min_bs_ut_dist': tf.constant(0., rdtype),
-            'isd': tf.constant(200., rdtype),
-            'bs_height': tf.constant(10., rdtype),
-            'min_ut_height': tf.constant(1.5, rdtype),
-            'max_ut_height': tf.constant(1.5, rdtype),
-            'indoor_probability': tf.constant(0.8, rdtype),
-            'min_ut_velocity': tf.constant(3./3.6, rdtype),
-            'max_ut_velocity': tf.constant(3./3.6, rdtype)
-        },
-        'uma': {
-            'min_bs_ut_dist': tf.constant(35., rdtype),
-            'isd': tf.constant(500., rdtype),
-            'bs_height': tf.constant(25., rdtype),
-            'min_ut_height': tf.constant(1.5, rdtype),
-            'max_ut_height': tf.constant(1.5, rdtype),
-            'indoor_probability': tf.constant(0.8, rdtype),
-            'min_ut_velocity': tf.constant(0.0, rdtype),
-            'max_ut_velocity': tf.constant(0.0, rdtype),
-        },
-        'uma-calibration': {
-            'min_bs_ut_dist': tf.constant(0., rdtype),
-            'isd': tf.constant(500., rdtype),
-            'bs_height': tf.constant(25., rdtype),
-            'min_ut_height': tf.constant(1.5, rdtype),
-            'max_ut_height': tf.constant(1.5, rdtype),
-            'indoor_probability': tf.constant(0.8, rdtype),
-            'min_ut_velocity': tf.constant(3./3.6, rdtype),
-            'max_ut_velocity': tf.constant(3./3.6, rdtype),
-        },
-        'rma': {
-            'min_bs_ut_dist': tf.constant(35., rdtype),
-            'isd': tf.constant(5000., rdtype),
-            'bs_height': tf.constant(35., rdtype),
-            'min_ut_height': tf.constant(1.5, rdtype),
-            'max_ut_height': tf.constant(1.5, rdtype),
-            'indoor_probability': tf.constant(0.5, rdtype),
-            'min_ut_velocity': tf.constant(0.0, rdtype),
-            'max_ut_velocity': tf.constant(0.0, rdtype)
+                'min_bs_ut_dist': tf.constant(10., rdtype),
+                'isd': tf.constant(200., rdtype),
+                'bs_height': tf.constant(10., rdtype),
+                'min_ut_height': tf.constant(1.5, rdtype),
+                'max_ut_height': tf.constant(1.5, rdtype),
+                'indoor_probability': tf.constant(0.0, rdtype),
+                'min_ut_velocity': tf.constant(3./3.6, rdtype),
+                'max_ut_velocity': tf.constant(3./3.6, rdtype)
+            },
+        'inh-open-office-calibration': {
+                'min_bs_ut_dist': tf.constant(0., rdtype),
+                'isd': tf.constant(20., rdtype),
+                'bs_height': tf.constant(3., rdtype),
+                'min_ut_height': tf.constant(1., rdtype),
+                'max_ut_height': tf.constant(1., rdtype),
+                # indoor probability is 0 to prevent the o2i from being applied
+                'indoor_probability': tf.constant(0.0, rdtype),
+                'min_ut_velocity': tf.constant(3./3.6, rdtype),
+                'max_ut_velocity': tf.constant(3./3.6, rdtype)
+            }
         }
-    }
+    else:
+        default_scenario_par = {
+            'umi': {
+                'min_bs_ut_dist': tf.constant(10., rdtype),
+                'isd': tf.constant(200., rdtype),
+                'bs_height': tf.constant(10., rdtype),
+                'min_ut_height': tf.constant(1.5, rdtype),
+                'max_ut_height': tf.constant(1.5, rdtype),
+                'indoor_probability': tf.constant(0.8, rdtype),
+                'min_ut_velocity': tf.constant(0.0, rdtype),
+                'max_ut_velocity': tf.constant(0.0, rdtype)
+            },
+            'umi-calibration': {
+                'min_bs_ut_dist': tf.constant(10., rdtype),
+                'isd': tf.constant(200., rdtype),
+                'bs_height': tf.constant(10., rdtype),
+                'min_ut_height': tf.constant(1.5, rdtype),
+                'max_ut_height': tf.constant(1.5, rdtype),
+                'indoor_probability': tf.constant(0.8, rdtype),
+                'min_ut_velocity': tf.constant(3./3.6, rdtype),
+                'max_ut_velocity': tf.constant(3./3.6, rdtype)
+            },
+            'uma': {
+                'min_bs_ut_dist': tf.constant(35., rdtype),
+                'isd': tf.constant(500., rdtype),
+                'bs_height': tf.constant(25., rdtype),
+                'min_ut_height': tf.constant(1.5, rdtype),
+                'max_ut_height': tf.constant(1.5, rdtype),
+                'indoor_probability': tf.constant(0.8, rdtype),
+                'min_ut_velocity': tf.constant(0.0, rdtype),
+                'max_ut_velocity': tf.constant(0.0, rdtype),
+            },
+            'uma-calibration': {
+                'min_bs_ut_dist': tf.constant(35., rdtype),
+                'isd': tf.constant(500., rdtype),
+                'bs_height': tf.constant(25., rdtype),
+                'min_ut_height': tf.constant(1.5, rdtype),
+                'max_ut_height': tf.constant(1.5, rdtype),
+                'indoor_probability': tf.constant(0.8, rdtype),
+                'min_ut_velocity': tf.constant(3./3.6, rdtype),
+                'max_ut_velocity': tf.constant(3./3.6, rdtype),
+            },
+            'rma': {
+                'min_bs_ut_dist': tf.constant(35., rdtype),
+                'isd': tf.constant(5000., rdtype),
+                'bs_height': tf.constant(35., rdtype),
+                'min_ut_height': tf.constant(1.5, rdtype),
+                'max_ut_height': tf.constant(1.5, rdtype),
+                'indoor_probability': tf.constant(0.5, rdtype),
+                'min_ut_velocity': tf.constant(0.0, rdtype),
+                'max_ut_velocity': tf.constant(0.0, rdtype)
+            },
+            'inh-open-office': {
+                'min_bs_ut_dist': tf.constant(0., rdtype),
+                'isd': tf.constant(20., rdtype),
+                'bs_height': tf.constant(3., rdtype),
+                'min_ut_height': tf.constant(1., rdtype),
+                'max_ut_height': tf.constant(1., rdtype),
+                # indoor probability is 0 to prevent the o2i from being applied
+                'indoor_probability': tf.constant(0.0, rdtype),
+                'min_ut_velocity': tf.constant(3./3.6, rdtype),
+                'max_ut_velocity': tf.constant(3./3.6, rdtype)
+            },
+            'inh-open-office-calibration': {
+                'min_bs_ut_dist': tf.constant(0., rdtype),
+                'isd': tf.constant(20., rdtype),
+                'bs_height': tf.constant(3., rdtype),
+                'min_ut_height': tf.constant(1., rdtype),
+                'max_ut_height': tf.constant(1., rdtype),
+                # indoor probability is 0 to prevent the o2i from being applied
+                'indoor_probability': tf.constant(0.0, rdtype),
+                'min_ut_velocity': tf.constant(3./3.6, rdtype),
+                'max_ut_velocity': tf.constant(3./3.6, rdtype)
+            }
+        }
     # Setting the scenario parameters
     if min_bs_ut_dist is None:
         min_bs_ut_dist = default_scenario_par[scenario]['min_bs_ut_dist']
@@ -780,6 +832,7 @@ def set_3gpp_scenario_parameters(scenario,
 
     return min_bs_ut_dist, isd, bs_height, min_ut_height, max_ut_height, \
         indoor_probability, min_ut_velocity, max_ut_velocity
+
 
 
 def relocate_uts(ut_loc,

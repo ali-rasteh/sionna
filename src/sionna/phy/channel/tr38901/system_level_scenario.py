@@ -56,7 +56,7 @@ class SystemLevelScenario(Object):
         :attr:`~sionna.phy.config.Config.precision` is used.
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
-        direction, enable_pathloss=True, enable_shadow_fading=True,
+        direction, enable_pathloss=True, enable_shadow_fading=True, release_number="19.0.0",
         precision=None):
         super().__init__(precision=precision)
 
@@ -87,6 +87,7 @@ class SystemLevelScenario(Object):
         # Pathloss and shadow fading
         self._enable_pathloss = enable_pathloss
         self._enable_shadow_fading = enable_shadow_fading
+        self._release_number = release_number
 
         # Scenario
         self._ut_loc = None
@@ -120,6 +121,11 @@ class SystemLevelScenario(Object):
     def shadow_fading_enabled(self):
         r"""`True` is shadow fading is enabled. `False` otherwise."""
         return self._enable_shadow_fading
+    
+    @property
+    def release_number(self):
+        r"""Release number of the 3GPP specification used for this scenario."""
+        return self._release_number
 
     @property
     def lambda_0(self):

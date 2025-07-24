@@ -61,7 +61,7 @@
     "corrDistASD" : 3,
     "corrDistASA" : 3,
     "corrDistSF" : 6,
-    "corrDistK" : 0,
+    "corrDistK" : 1,
     "corrDistZSA" : 4,
     "corrDistZSD" : 4,
     "corrDistED" : 10,

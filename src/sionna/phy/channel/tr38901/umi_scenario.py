@@ -108,17 +108,26 @@ class UMiScenario(SystemLevelScenario):
     @property
     def los_parameter_filepath(self):
         r""" Path of the configuration file for LoS scenario"""
-        return 'UMi_LoS.json'
+        if self.release_number=="18.0.0":
+            return 'UMi_LoS.json'
+        elif self.release_number=="19.0.0":
+            return 'UMi_LoS_rel19.json'
 
     @property
     def nlos_parameter_filepath(self):
         r""" Path of the configuration file for NLoS scenario"""
-        return'UMi_NLoS.json'
+        if self.release_number=="18.0.0":
+            return'UMi_NLoS.json'
+        elif self.release_number=="19.0.0":
+            return 'UMi_NLoS_rel19.json'
 
     @property
     def o2i_parameter_filepath(self):
         r""" Path of the configuration file for indoor scenario"""
-        return 'UMi_O2I.json'
+        if self.release_number=="18.0.0":
+            return 'UMi_O2I.json'
+        elif self.release_number=="19.0.0":
+            return 'UMi_O2I_rel19.json'
 
     #########################
     # Utility methods

@@ -54,8 +54,8 @@
     "cASA" : 8.0,
     "cZSA" : 9.0,
 
-    "CPhiNLoS" : 1.146,
-    "CThetaNLoS" : 1.104,
+    "CPhiNLoS" : 1.211,
+    "CThetaNLoS" : 1.1088,
 
     "corrDistDS" : 8,
     "corrDistASD" : 7,
