@@ -13,7 +13,7 @@ from sionna.phy import SPEED_OF_LIGHT, PI
 from sionna.phy.utils import log10, insert_dims, sample_bernoulli
 from sionna.phy.channel.utils import rad_2_deg, \
     wrap_angle_0_360
-from .antenna import PanelArray
+from .antenna import PanelArray, UtArray
 
 from . import models # pylint: disable=relative-beyond-top-level
 
@@ -72,7 +72,7 @@ class SystemLevelScenario(Object):
         self._o2i_model = o2i_model
 
         # UTs and BSs arrays
-        assert isinstance(ut_array, PanelArray), \
+        assert isinstance(ut_array, PanelArray) or isinstance(ut_array, UtArray), \
             "'ut_array' must be an instance of PanelArray"
         assert isinstance(bs_array, PanelArray), \
             "'bs_array' must be an instance of PanelArray"

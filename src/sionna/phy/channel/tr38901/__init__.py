@@ -6,7 +6,7 @@ Channel sub-package of the Sionna PHY package implementing 3GPP TR39.801 models
 """
 
 from .antenna import AntennaElement, AntennaPanel, PanelArray, Antenna,\
-                     AntennaArray
+                     AntennaArray, UtArray
 from .lsp import LSP, LSPGenerator
 from .rays import Rays, RaysGenerator
 from .system_level_scenario import SystemLevelScenario

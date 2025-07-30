@@ -396,7 +396,11 @@ class ChannelCoefficientsGenerator(Object):
         row1 = tf.stack([cos(psi), -sin(psi)], axis=-1)
         row2 = tf.stack([sin(psi), cos(psi)], axis=-1)
         mat = tf.stack([row1, row2], axis=-2)
-        f = tf.matmul(mat, tf.expand_dims(f_prime, -1))
+        f_prime_expanded = tf.expand_dims(f_prime, -1)
+        n = f_prime_expanded.shape.rank - mat.shape.rank
+        if n > 0:
+            mat = tf.expand_dims(mat, axis=list(range(n)))
+        f = tf.matmul(mat, f_prime_expanded)
         return f
 
     def _step_11_get_tx_antenna_positions(self, topology):
@@ -696,7 +700,7 @@ class ChannelCoefficientsGenerator(Object):
         zod : [batch size, num TXs, num RXs, num clusters, num rays], tf.float
             Zenith angles of departure [radian]
 
-        h_phase : [batch size, num_tx, num rx, num clusters, num rays, num time steps], tf.complex
+        h_phase : [batch size, num_tx, num rx, num clusters, num rays, 2, 2], tf.complex
             Matrix with phase shifts due to mobility in (7.5-22)
 
         Output
@@ -720,75 +724,14 @@ class ChannelCoefficientsGenerator(Object):
         rx_orientations = tf.reshape(rx_orientations, shape)
         zoa_prime, aoa_prime = self._gcs_to_lcs(rx_orientations, zoa, aoa)
 
-        # Compute transmitted and received field strength for all antennas
-        # in the LCS  and convert to GCS
-        f_tx_pol1_prime = tf.stack(self._tx_array.ant_pol1.field(zod_prime,
-                                                            aod_prime), axis=-1)
-        f_rx_pol1_prime = tf.stack(self._rx_array.ant_pol1.field(zoa_prime,
-                                                            aoa_prime), axis=-1)
+        f_tx_array_prime = self._tx_array.field(zod_prime, aod_prime)
+        f_rx_array_prime = self._rx_array.field(zoa_prime, aoa_prime)
+        f_tx_array = self._l2g_response(f_tx_array_prime, tx_orientations, zod, aod)
+        f_rx_array = self._l2g_response(f_rx_array_prime, rx_orientations, zoa, aoa)
 
-        f_tx_pol1 = self._l2g_response(f_tx_pol1_prime, tx_orientations,
-            zod, aod)
-
-        f_rx_pol1 = self._l2g_response(f_rx_pol1_prime, rx_orientations,
-            zoa, aoa)
-
-        if self._tx_array.polarization == 'dual':
-            f_tx_pol2_prime = tf.stack(self._tx_array.ant_pol2.field(
-                zod_prime, aod_prime), axis=-1)
-            f_tx_pol2 = self._l2g_response(f_tx_pol2_prime, tx_orientations,
-                zod, aod)
-
-        if self._rx_array.polarization == 'dual':
-            f_rx_pol2_prime = tf.stack(self._rx_array.ant_pol2.field(
-                zoa_prime, aoa_prime), axis=-1)
-            f_rx_pol2 = self._l2g_response(f_rx_pol2_prime, rx_orientations,
-                zoa, aoa)
-
-        # Fill the full channel matrix with field responses
-        pol1_tx = tf.matmul(h_phase, tf.complex(f_tx_pol1,
-            tf.constant(0., self.rdtype)))
-        if self._tx_array.polarization == 'dual':
-            pol2_tx = tf.matmul(h_phase, tf.complex(f_tx_pol2, tf.constant(0.,
-                                            self.rdtype)))
-
-        num_ant_tx = self._tx_array.num_ant
-        if self._tx_array.polarization == 'single':
-            # Each BS antenna gets the polarization 1 response
-            f_tx_array = tf.tile(tf.expand_dims(pol1_tx, 0),
-                tf.concat([[num_ant_tx], tf.ones([tf.rank(pol1_tx)], tf.int32)],
-                axis=0))
-        else:
-            # Assign polarization reponse according to polarization to each
-            # antenna
-            pol_tx = tf.stack([pol1_tx, pol2_tx], 0) # pylint: disable=possibly-used-before-assignment
-            ant_ind_pol2 = self._tx_array.ant_ind_pol2
-            num_ant_pol2 = ant_ind_pol2.shape[0]
-            # O = Pol 1, 1 = Pol 2, we only scatter the indices for Pol 1,
-            # the other elements are already 0
-            gather_ind = tf.scatter_nd(tf.reshape(ant_ind_pol2, [-1,1]),
-                tf.ones([num_ant_pol2], tf.int32), [num_ant_tx])
-            f_tx_array = tf.gather(pol_tx, gather_ind, axis=0)
-
-        num_ant_rx = self._rx_array.num_ant
-        if self._rx_array.polarization == 'single':
-            # Each UT antenna gets the polarization 1 response
-            f_rx_array = tf.tile(tf.expand_dims(f_rx_pol1, 0),
-                tf.concat([[num_ant_rx], tf.ones([tf.rank(f_rx_pol1)],
-                                                 tf.int32)], axis=0))
-            f_rx_array = tf.complex(f_rx_array,
-                                    tf.constant(0., self.rdtype))
-        else:
-            # Assign polarization response according to polarization to each
-            # antenna
-            pol_rx = tf.stack([f_rx_pol1, f_rx_pol2], 0) # pylint: disable=possibly-used-before-assignment
-            ant_ind_pol2 = self._rx_array.ant_ind_pol2
-            num_ant_pol2 = ant_ind_pol2.shape[0]
-            # O = Pol 1, 1 = Pol 2, we only scatter the indices for Pol 1,
-            # the other elements are already 0
-            gather_ind = tf.scatter_nd(tf.reshape(ant_ind_pol2, [-1,1]),
-                tf.ones([num_ant_pol2], tf.int32), [num_ant_rx])
-            f_rx_array = tf.complex(tf.gather(pol_rx, gather_ind, axis=0),
+        f_tx_array = tf.matmul(tf.expand_dims(h_phase, 0), tf.complex(f_tx_array,
+                            tf.constant(0., self.rdtype)))
+        f_rx_array = tf.complex(f_rx_array,
                             tf.constant(0., self.rdtype))
 
         # Compute the scalar product between the field vectors through

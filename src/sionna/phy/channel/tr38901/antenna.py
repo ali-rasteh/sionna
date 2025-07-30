@@ -19,7 +19,7 @@ class AntennaElement(Object):
 
     Parameters
     ----------
-    pattern : "omni" | "38.901"
+    pattern : "omni" | "38.901" | "38.901-ut"
         Radiation pattern
 
     slant_angle : `float`
@@ -38,8 +38,8 @@ class AntennaElement(Object):
                 ):
 
         super().__init__(precision=precision)
-        assert pattern in ["omni", "38.901"], \
-            "The radiation_pattern must be one of [\"omni\", \"38.901\"]."
+        assert pattern in ["omni", "38.901", "38.901-ut"], \
+            "The radiation_pattern must be one of [\"omni\", \"38.901\", \"38.901-ut\"]."
 
         self._pattern = pattern
         self._slant_angle = tf.constant(slant_angle, dtype=self.rdtype)
@@ -47,8 +47,13 @@ class AntennaElement(Object):
         # Selected the radiation field correspding to the requested pattern
         if pattern == "omni":
             self._radiation_pattern = self._radiation_pattern_omni
-        else:
+            self._polarization_model = self._polarization_model_38901_2
+        elif pattern == "38.901":
             self._radiation_pattern = self._radiation_pattern_38901
+            self._polarization_model = self._polarization_model_38901_2
+        elif pattern == "38.901-ut":
+            self._radiation_pattern = self._radiation_pattern_38901_ut
+            self._polarization_model = self._polarization_model_38901_1
 
     def field(self, theta, phi):
         """
@@ -62,9 +67,8 @@ class AntennaElement(Object):
         phi:
             Azimuth angle wrapped within (-pi, pi) [radian]
         """
-        a = sqrt(self._radiation_pattern(theta, phi))
-        f_theta = a * cos(self._slant_angle)
-        f_phi   = a * sin(self._slant_angle)
+        a = self._radiation_pattern(theta, phi)
+        f_theta, f_phi = self._polarization_model(a, theta, phi)
         return (f_theta, f_phi)
 
     def show(self):
@@ -145,6 +149,74 @@ class AntennaElement(Object):
         a_h = -tf.minimum(12*(phi/phi_3db)**2, a_max)
         a_db = -tf.minimum(-(a_v + a_h), a_max) + g_e_max
         return 10**(a_db/10)
+    
+    def _radiation_pattern_38901_ut(self, theta, phi):
+        """
+        Radiation pattern from TR38901 release 19 (Table 7.3-2)
+
+        Inputs
+        -------
+        theta:
+            Zenith angle wrapped within (0,pi) [radian]
+
+        phi:
+            Azimuth angle wrapped within (-pi, pi) [radian]
+        """
+        theta_3db = phi_3db = 125/180*PI
+        a_max = sla_v = 22.5
+        g_e_max = 5.3
+        a_v = -tf.minimum(12*((theta-PI/2)/theta_3db)**2, sla_v)
+        a_h = -tf.minimum(12*(phi/phi_3db)**2, a_max)
+        a_db = -tf.minimum(-(a_v + a_h), a_max) + g_e_max
+        return 10**(a_db/10)
+    
+    def _polarization_model_38901_1(self, power, theta, phi):
+        """
+        Polarization model-1 from TR38901 (Equation 7.3-3)
+
+        Inputs
+        -------
+        power:
+            Power of the antenna element
+
+        theta:
+            Zenith angle wrapped within (0,pi) [radian]
+
+        phi:
+            Azimuth angle wrapped within (-pi, pi) [radian]
+        """
+        f_theta_double_prime = sqrt(power) * cos(self._slant_angle)
+        f_phi_double_prime   = sqrt(power) * sin(self._slant_angle)
+
+        zeta = self._slant_angle
+        # cos(ψ)
+        numerator_cos_psi = cos(zeta) * sin(theta) + sin(zeta) * sin(phi) * cos(theta)
+        denominator_cos_psi = tf.sqrt(1 - tf.square(cos(zeta) * sin(theta) - sin(zeta) * sin(phi) * cos(theta)))
+        cos_psi = numerator_cos_psi / denominator_cos_psi
+        # sin(ψ)
+        numerator_sin_psi = sin(zeta) * cos(phi)
+        denominator_sin_psi = tf.sqrt(1 - tf.square(cos(zeta) * cos(theta) - sin(zeta) * sin(phi) * sin(theta)))
+        sin_psi = numerator_sin_psi / denominator_sin_psi
+
+        f_theta = f_theta_double_prime * cos_psi - f_phi_double_prime * sin_psi
+        f_phi   = f_theta_double_prime * sin_psi + f_phi_double_prime * cos_psi
+
+        return (f_theta, f_phi)
+
+        
+    def _polarization_model_38901_2(self, power, theta, phi):
+        """
+        Polarization model-2 from TR38901 (Equations 7.3-4/5)
+
+        Inputs
+        -------
+        power:
+            Power of the antenna element
+        """
+        f_theta = sqrt(power) * cos(self._slant_angle)
+        f_phi   = sqrt(power) * sin(self._slant_angle)
+
+        return (f_theta, f_phi)
 
     def _compute_gain(self):
         """
@@ -247,6 +319,7 @@ class AntennaPanel(Object):
         """Number of rows"""
         return self._num_rows
 
+    @property
     def num_cols(self):
         """Number of columns"""
         return self._num_cols
@@ -600,6 +673,46 @@ class PanelArray(Object):
         assert self._polarization == 'dual',\
             "This property is not defined with single polarization"
         return self._ant_pos_pol2
+    
+    def field(self, theta, phi):
+        """
+        Field pattern of the panel array in the local coordinate system
+
+        Inputs
+        -------
+        theta:
+            Zenith angle wrapped within (0,pi) [radian]
+
+        phi:
+            Azimuth angle wrapped within (-pi, pi) [radian]
+        """
+
+        # Compute the field strength for all antennas in the LCS
+        f_pol1 = tf.stack(self.ant_pol1.field(theta,
+                                              phi), axis=-1)
+
+        if self.polarization == 'dual':
+            f_pol2 = tf.stack(self.ant_pol2.field(
+                theta, phi), axis=-1)
+
+        if self.polarization == 'single':
+            # Each UT antenna gets the polarization 1 response
+            f_array = tf.tile(tf.expand_dims(f_pol1, 0),
+                tf.concat([[self.num_ant], tf.ones([tf.rank(f_pol1)],
+                                                 tf.int32)], axis=0))
+        else:
+            # Assign polarization response according to polarization to each
+            # antenna
+            f_pol = tf.stack([f_pol1, f_pol2], 0) # pylint: disable=possibly-used-before-assignment
+            ant_ind_pol2 = self.ant_ind_pol2
+            num_ant_pol2 = ant_ind_pol2.shape[0]
+            # O = Pol 1, 1 = Pol 2, we only scatter the indices for Pol 1,
+            # the other elements are already 0
+            gather_ind = tf.scatter_nd(tf.reshape(ant_ind_pol2, [-1,1]),
+                tf.ones([num_ant_pol2], tf.int32), [self.num_ant])
+            f_array = tf.gather(f_pol, gather_ind, axis=0)
+            
+        return f_array
 
     def show(self):
         """Show the panel array geometry"""
@@ -741,3 +854,294 @@ class AntennaArray(PanelArray):
                          element_vertical_spacing=vertical_spacing,
                          element_horizontal_spacing=horizontal_spacing,
                          precision=precision)
+
+class UtArray(Object):
+    # pylint: disable=line-too-long
+    r"""
+    Antenna array following the [TR38901]_ specification release 19 section 7.3
+    for UT antenna model
+
+    This class is used to create models of the antenna arrays used by the
+    user terminals and that need to be specified when using the
+    :ref:`CDL <cdl>`, :ref:`UMi <umi>`, :ref:`UMa <uma>`, and :ref:`RMa <rma>`
+    models.
+
+    Example
+    --------
+
+    >>> array = UtArray(num_rows_per_panel = 4,
+...                    num_cols_per_panel = 4,
+...                    polarization = 'dual',
+...                    polarization_type = 'VH',
+...                    antenna_pattern = '38.901',
+...                    carrier_frequency = 3.5e9,
+...                    num_cols = 2,
+...                    panel_horizontal_spacing = 3.)
+    >>> array.show()
+
+    Parameters
+    ----------
+    polarization : "single" | "dual"
+        Polarization 
+
+    polarization_type : "V" | "VH"
+        Type of polarization. For single polarization, must be "V".
+        For dual polarization, must be "VH".
+
+    carrier_frequency : `float`
+        Carrier frequency [Hz]
+
+    antenna_pattern : "omni" | "38.901-ut" (default)
+        Element radiation pattern.
+
+    device_type : "handheld" | "cpe"
+        Type of device. "handheld" for user terminals with handheld devices,
+        "cpe" for user terminals with customer premises equipment.
+
+    location_indices : `list` of indices. Default [1, 2, 3, 4, 5, 6, 7, 8]
+        List of indices of candidate locations for the antenna elements.
+        The indices must be in the range [1, 8] and correspond to the
+        locations defined in [TR38901]_ section 7.3 Figure 7.3.2
+
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
+    """
+    def __init__(self,  polarization,
+                        polarization_type,
+                        carrier_frequency,
+                        antenna_pattern="38.901-ut",
+                        device_type="handheld",
+                        location_indices=[1, 2, 3, 4, 5, 6, 7, 8],
+                        precision=None):
+
+        super().__init__(precision=precision)
+
+        assert polarization in ('single', 'dual'), \
+            "polarization must be either 'single' or 'dual'"
+        assert device_type in ('handheld', 'cpe'), \
+            "device_type must be either 'handheld' or 'cpe'"
+
+        self._polarization = polarization
+        self._polarization_type = polarization_type
+
+        p = 1 if polarization == 'single' else 2
+        # Total number of antenna elements
+        self._num_ant = len(location_indices) * p
+
+        # Wavelength (m)
+        self._lambda_0 = tf.constant(SPEED_OF_LIGHT / carrier_frequency,
+                                    self.rdtype)
+
+        # Create one antenna element for each polarization direction
+        # polarization must be one of {"V", "H", "VH", "cross"}
+        if polarization == 'single':
+            assert polarization_type in ["V"],\
+                "For single polarization, polarization_type must be 'V'"
+            slant_angle = 0
+            self._ant_pol1 = AntennaElement(antenna_pattern, slant_angle,
+                self.precision)
+        else:
+            assert polarization_type in ["VH"],\
+            "For dual polarization, polarization_type must be 'VH'"
+            slant_angle = 0
+            self._ant_pol1 = AntennaElement(antenna_pattern, slant_angle,
+                self.precision)
+            self._ant_pol2 = AntennaElement(antenna_pattern, slant_angle+PI/2,
+                self.precision)
+
+        if device_type == "handheld":
+            # Set the candidate locations for the antenna elements
+            # based on TR38.901 release 19 figure 7.3-3
+            candidate_locations_pos = np.zeros([8, 3])
+            candidate_locations_pos[0,:] = [-0.075, -0.035, 0.0]
+            candidate_locations_pos[1,:] = [0.0,    -0.035, 0.0]
+            candidate_locations_pos[2,:] = [0.075,  -0.035, 0.0]
+            candidate_locations_pos[3,:] = [0.075,  0.0,    0.0]
+            candidate_locations_pos[4,:] = [0.075,  0.035,  0.0]
+            candidate_locations_pos[5,:] = [0.0,    0.035,  0.0]
+            candidate_locations_pos[6,:] = [-0.075, 0.035,  0.0]
+            candidate_locations_pos[7,:] = [-0.075, 0.0,    0.0]
+        elif device_type == "cpe":
+            # Set the candidate locations for the antenna elements
+            # based on TR38.901 release 19 figure 7.3-6
+            candidate_locations_pos = np.zeros([9, 3])
+            candidate_locations_pos[0,:] = [0.0,    -0.1,   0.1 ]
+            candidate_locations_pos[1,:] = [0.0,    -0.1,   0.0 ]
+            candidate_locations_pos[2,:] = [0.0,    -0.1,   -0.1]
+            candidate_locations_pos[3,:] = [0.0,    0.0,    0.1 ]
+            candidate_locations_pos[4,:] = [0.0,    0.0,    0.0 ]
+            candidate_locations_pos[5,:] = [0.0,    0.0,    -0.1]
+            candidate_locations_pos[6,:] = [0.0,    0.1,    0.1 ]
+            candidate_locations_pos[7,:] = [0.0,    0.1,    0.0 ]
+            candidate_locations_pos[8,:] = [0.0,    0.1,    -0.1]
+
+        ant_pos = np.zeros([self._num_ant, 3])
+        for i, loc in enumerate(location_indices):
+            ant_pos[i] = candidate_locations_pos[loc-1,:]
+        num_locs = len(location_indices)
+        if polarization == 'dual':
+            ant_pos[num_locs:] = ant_pos[:num_locs]
+        self._ant_pos = tf.constant(ant_pos, self.rdtype)
+
+        # Compute indices of antennas for polarization directions
+        ind = np.arange(0, self._num_ant)
+        ind = np.reshape(ind, [p, -1])
+        self._ant_ind_pol1 = tf.constant(np.reshape(ind[::p], [-1]), tf.int32)
+        if polarization == 'single':
+            self._ant_ind_pol2 = tf.constant(np.array([]), tf.int32)
+        else:
+            self._ant_ind_pol2 = tf.constant(np.reshape(
+                ind[1:p:2], [-1]), tf.int32)
+
+        # Get positions of antenna elements for each polarization direction
+        self._ant_pos_pol1 = tf.gather(self._ant_pos, self._ant_ind_pol1,
+                                        axis=0)
+        self._ant_pos_pol2 = tf.gather(self._ant_pos, self._ant_ind_pol2,
+                                        axis=0)
+
+    @property
+    def polarization(self):
+        """Polarization ("single" or "dual")"""
+        return self._polarization
+
+    @property
+    def polarization_type(self):
+        """Polarization type. "V" for single polarization.
+        "VH" for dual polarization."""
+        return self._polarization_type
+
+    @property
+    def num_ant(self):
+        """Total number of antenna elements"""
+        return self._num_ant
+
+    @property
+    def ant_pol1(self):
+        """Field of an antenna element with the first polarization direction"""
+        return self._ant_pol1
+
+    @property
+    def ant_pol2(self):
+        """Field of an antenna element with the second polarization direction.
+        Only defined with dual polarization."""
+        assert self._polarization == 'dual',\
+            "This property is not defined with single polarization"
+        return self._ant_pol2
+
+    @property
+    def ant_pos(self):
+        """Positions of the antennas"""
+        return self._ant_pos
+
+    @property
+    def ant_ind_pol1(self):
+        """Indices of antenna elements with the first polarization direction"""
+        return self._ant_ind_pol1
+
+    @property
+    def ant_ind_pol2(self):
+        """Indices of antenna elements with the second polarization direction.
+        Only defined with dual polarization."""
+        assert self._polarization == 'dual',\
+            "This property is not defined with single polarization"
+        return self._ant_ind_pol2
+
+    @property
+    def ant_pos_pol1(self):
+        """Positions of the antenna elements with the first polarization
+        direction"""
+        return self._ant_pos_pol1
+
+    @property
+    def ant_pos_pol2(self):
+        """Positions of antenna elements with the second polarization direction.
+        Only defined with dual polarization."""
+        assert self._polarization == 'dual',\
+            "This property is not defined with single polarization"
+        return self._ant_pos_pol2
+
+    def field(self, theta, phi):
+        """
+        Field pattern of the panel array in the local coordinate system
+
+        Inputs
+        -------
+        theta:
+            Zenith angle wrapped within (0,pi) [radian]
+
+        phi:
+            Azimuth angle wrapped within (-pi, pi) [radian]
+        """
+
+        num_ant_pol1 = self.ant_pos_pol1.shape[0]
+        shape = [num_ant_pol1] + (theta.shape.rank)*[1]
+        theta_offset_pol1 = tf.zeros(shape, self.rdtype)
+        phi_offset_pol1 = tf.reshape(tf.atan2(self._ant_pos_pol1[:,1],
+                              self._ant_pos_pol1[:,0]), shape)
+        theta_ant_pol1 = tf.expand_dims(theta, 0) - theta_offset_pol1
+        phi_ant_pol1 = tf.expand_dims(phi, 0) - phi_offset_pol1
+        # Compute the field strength for all pol1 antennas in the LCS
+        f_pol1 = tf.stack(self.ant_pol1.field(theta_ant_pol1,
+                                              phi_ant_pol1), axis=-1)
+
+        if self.polarization == 'dual':
+            num_ant_pol2 = self.ant_pos_pol2.shape[0]
+            shape = [num_ant_pol2] + (theta.shape.rank)*[1]
+            theta_offset_pol2 = tf.zeros(shape, self.rdtype)
+            phi_offset_pol2 = tf.reshape(tf.atan2(self._ant_pos_pol2[:,1],
+                                self._ant_pos_pol2[:,0]), shape)
+            theta_ant_pol2 = tf.expand_dims(theta, 0) - theta_offset_pol2
+            phi_ant_pol2 = tf.expand_dims(phi, 0) - phi_offset_pol2
+            # Compute the field strength for all pol2 antennas in the LCS
+            f_pol2 = tf.stack(self.ant_pol2.field(
+                theta_ant_pol2, phi_ant_pol2), axis=-1)
+
+        if self.polarization == 'single':
+            # Each UT antenna gets the polarization 1 response
+            f_array = f_pol1
+        else:
+            # Concatenate the fields of both polarizations
+            # The first half of the array corresponds to polarization 1
+            # and the second half to polarization 2
+            f_array = tf.concat([f_pol1, f_pol2], 0) # pylint: disable=possibly-used-before-assignment
+            
+        return f_array
+    
+    def show(self):
+        """Show the panel array geometry"""
+        if self._polarization == 'single':
+            if self._polarization_type == 'H':
+                marker_p1 = MarkerStyle("_").get_marker()
+            else:
+                marker_p1 = MarkerStyle("|")
+        else: # 'dual'
+            if self._polarization_type == 'cross':
+                marker_p1 = (2, 0, -45)
+                marker_p2 = (2, 0, 45)
+            else:
+                marker_p1 = MarkerStyle("_").get_marker()
+                marker_p2 = MarkerStyle("|").get_marker()
+
+        fig = plt.figure()
+        pos_pol1 = self._ant_pos_pol1
+        plt.plot(pos_pol1[:,1], pos_pol1[:,2],
+            marker=marker_p1, markeredgecolor='red',
+            markersize="20", linestyle="None", markeredgewidth="2")
+        for i, p in enumerate(pos_pol1):
+            fig.axes[0].annotate(self._ant_ind_pol1[i].numpy()+1, (p[1], p[2]))
+        if self._polarization == 'dual':
+            pos_pol2 = self._ant_pos_pol2
+            plt.plot(pos_pol2[:,1], pos_pol2[:,2],
+                marker=marker_p2, markeredgecolor='black', # pylint: disable=possibly-used-before-assignment
+                markersize="20", linestyle="None", markeredgewidth="1")
+        plt.xlabel("y (m)")
+        plt.ylabel("z (m)")
+        plt.title("UT Antenna Array")
+        plt.legend(["Polarization 1", "Polarization 2"], loc="upper right")
+
+    def show_element_radiation_pattern(self):
+        """Show the radiation field of antenna elements forming the panel"""
+        self._ant_pol1.show()
+
