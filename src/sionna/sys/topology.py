@@ -764,7 +764,7 @@ class HexGrid(Block):
         r_max = tf.cast(self.isd, self.rdtype) / (2*tf.math.cos(alpha_half))
         r_max = tf.minimum(r_max, tf.sqrt(r_max2))
 
-        # Check this to be according to 3GPP distribution models
+        # TODO Check this to be according to 3GPP distribution models
         # To ensure the UT distribution to be uniformly distributed across the
         # sector, we sample positions such that their *squared* distance from
         # the BS is uniformly distributed within (r_min**2, r_max**2)
@@ -2177,7 +2177,7 @@ def gen_indoorgrid_topology(batch_size,
     # ----------------#
     bs_yaw = tf.zeros([batch_size, num_cells*1, 1], rdtype)
 
-    # check: this could be a bug
+    # TODO check: this could be a bug
     # BSs are downtilted towards the sector center
     if downtilt_to_sector_center:
         bs_downtilt = tf.constant(PI, rdtype)
@@ -2427,7 +2427,7 @@ def gen_calibration_topology(calib_stage,
         # [batch_size, num_cells*num_sectors, 1]
         bs_yaw = insert_dims(bs_yaw, 1, axis=-1)
 
-    # check: this could be a bug
+    # TODO check: this could be a bug
     # BSs are downtilted towards the sector center
     if scenario == "inh-open-office":
         bs_downtilt = tf.constant(PI, rdtype)

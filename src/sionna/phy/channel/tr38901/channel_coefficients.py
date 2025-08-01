@@ -767,7 +767,7 @@ class ChannelCoefficientsGenerator(Object):
             d1 distance in the equation 7.6-47
         """
 
-        # Check if it refers to the 3D distance between reference point at TRP and UT side
+        # TODO Check if it refers to the 3D distance between reference point at TRP and UT side
         d3d = topology.distance_3d
         c = tf.constant(299792458.0, dtype=self.rdtype)
         s_trp = rays.s_trp
