@@ -56,7 +56,7 @@ class SystemLevelScenario(Object):
         :attr:`~sionna.phy.config.Config.precision` is used.
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
-        direction, enable_pathloss=True, enable_shadow_fading=True, release_number="19.0.0",
+        direction, enable_pathloss=True, enable_shadow_fading=True, release_number="19",
         precision=None):
         super().__init__(precision=precision)
 

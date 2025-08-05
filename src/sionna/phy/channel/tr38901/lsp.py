@@ -480,7 +480,7 @@ class LSPGenerator(Object):
         # Material penetration losses
         # fc must be in GHz
         # l_iirglass = 23. + 0.3*fc
-        # Release 19
+        # TODO Release 19
         l_iirglass = 25.4 + 0.11*fc
         l_concrete = 5. + 4.*fc
 

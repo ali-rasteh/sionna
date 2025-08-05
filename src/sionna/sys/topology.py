@@ -2232,7 +2232,8 @@ def gen_indoorgrid_topology(batch_size,
             bs_orientations, ut_velocities, in_state, los, bs_virtual_loc
     
     
-def gen_calibration_topology(calib_stage,
+def gen_calibration_topology(release_number_3gpp,
+                             calib_stage,
                             calib_bs_config,
                             calib_ut_config,
                             scenario,
@@ -2368,7 +2369,7 @@ def gen_calibration_topology(calib_stage,
     # -----------------#
     # 3GPP parameters #
     # -----------------#
-    if calib_stage == 'near_field':
+    if calib_stage == 'near-field':
         params = set_3gpp_nearfield_scenario_parameters(scenario,
                                                         min_bs_ut_dist,
                                                         precision=precision)
@@ -2469,7 +2470,7 @@ def gen_calibration_topology(calib_stage,
     # UT state #
     # ----------#
     # Draw random UT orientation, velocity and indoor state
-    ut_orientations, ut_velocities, in_state = \
+    _, ut_velocities, in_state = \
         random_ut_properties(batch_size,
                               num_ut,
                               indoor_probability,
@@ -2478,18 +2479,21 @@ def gen_calibration_topology(calib_stage,
                               precision=precision)
 
     # Randomly generate the UT orientations
-    ut_bearing = config.tf_rng.uniform([batch_size, num_ut], minval=-PI,
-                                    maxval=PI, dtype=rdtype)
-    if calib_stage == 'near_field':
-        if calib_ut_config == "A":
-            ut_downtilt = tf.constant(0.5*PI, shape=[batch_size, num_ut], dtype=rdtype)
-        else:
-            ut_downtilt = tf.constant(0.25*PI, shape=[batch_size, num_ut], dtype=rdtype)
-    else:
+    if calib_ut_config in ['None', "A"]:
+        ut_bearing = config.tf_rng.uniform([batch_size, num_ut], minval=-PI,
+                                        maxval=PI, dtype=rdtype)
         ut_downtilt = tf.constant(0.5*PI, shape=[batch_size, num_ut], dtype=rdtype)
-    
-    ut_slant = tf.constant(0.0, shape=[batch_size, num_ut], dtype=rdtype)
-    
+        ut_slant = tf.constant(0.0, shape=[batch_size, num_ut], dtype=rdtype)
+    elif calib_ut_config in ["B", "C"]:
+        ut_bearing = config.tf_rng.uniform([batch_size, num_ut], minval=-PI,
+                                        maxval=PI, dtype=rdtype)
+        ut_downtilt = tf.constant(0.25*PI, shape=[batch_size, num_ut], dtype=rdtype)
+        ut_slant = tf.constant(0.0, shape=[batch_size, num_ut], dtype=rdtype)
+    elif calib_ut_config in ["D"]:
+        ut_bearing = tf.constant(0.0, shape=[batch_size, num_ut], dtype=rdtype)
+        ut_downtilt = tf.constant(0.0, shape=[batch_size, num_ut], dtype=rdtype)
+        ut_slant = tf.constant(0.0, shape=[batch_size, num_ut], dtype=rdtype)
+        
     ut_orientations = tf.stack([ut_bearing, ut_downtilt, ut_slant], axis=-1)
 
     if return_grid:

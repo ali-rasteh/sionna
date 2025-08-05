@@ -13,6 +13,7 @@ from matplotlib.markers import MarkerStyle
 from sionna.phy import SPEED_OF_LIGHT, PI
 from sionna.phy.utils import log10
 from sionna.phy.block import Object
+from sionna.phy.channel.utils import deg_2_rad, rad_2_deg, wrap_angle_0_360
 
 class AntennaElement(Object):
     """Antenna element following the [TR38901]_ specification
@@ -185,6 +186,10 @@ class AntennaElement(Object):
         phi:
             Azimuth angle wrapped within (-pi, pi) [radian]
         """
+        assert tf.reduce_all((theta >= 0) & (theta <= np.pi))
+        assert tf.reduce_all((phi >= -np.pi) & (phi <= np.pi))
+
+        epsilon = 1e-9
         f_theta_double_prime = sqrt(power) * cos(self._slant_angle)
         f_phi_double_prime   = sqrt(power) * sin(self._slant_angle)
 
@@ -192,10 +197,12 @@ class AntennaElement(Object):
         # cos(ψ)
         numerator_cos_psi = cos(zeta) * sin(theta) + sin(zeta) * sin(phi) * cos(theta)
         denominator_cos_psi = tf.sqrt(1 - tf.square(cos(zeta) * sin(theta) - sin(zeta) * sin(phi) * cos(theta)))
+        denominator_cos_psi = tf.maximum(denominator_cos_psi, epsilon)  # Avoid division by zero
         cos_psi = numerator_cos_psi / denominator_cos_psi
         # sin(ψ)
         numerator_sin_psi = sin(zeta) * cos(phi)
         denominator_sin_psi = tf.sqrt(1 - tf.square(cos(zeta) * cos(theta) - sin(zeta) * sin(phi) * sin(theta)))
+        denominator_sin_psi = tf.maximum(denominator_sin_psi, epsilon)
         sin_psi = numerator_sin_psi / denominator_sin_psi
 
         f_theta = f_theta_double_prime * cos_psi - f_phi_double_prime * sin_psi
@@ -686,7 +693,6 @@ class PanelArray(Object):
         phi:
             Azimuth angle wrapped within (-pi, pi) [radian]
         """
-
         # Compute the field strength for all antennas in the LCS
         f_pol1 = tf.stack(self.ant_pol1.field(theta,
                                               phi), axis=-1)
@@ -1074,7 +1080,6 @@ class UtArray(Object):
         phi:
             Azimuth angle wrapped within (-pi, pi) [radian]
         """
-
         num_ant_pol1 = self.ant_pos_pol1.shape[0]
         shape = [num_ant_pol1] + (theta.shape.rank)*[1]
         theta_offset_pol1 = tf.zeros(shape, self.rdtype)
@@ -1082,6 +1087,10 @@ class UtArray(Object):
                               self._ant_pos_pol1[:,0]), shape)
         theta_ant_pol1 = tf.expand_dims(theta, 0) - theta_offset_pol1
         phi_ant_pol1 = tf.expand_dims(phi, 0) - phi_offset_pol1
+        phi_ant_pol1 = wrap_angle_0_360(rad_2_deg(phi_ant_pol1))
+        phi_ant_pol1 = tf.where(tf.math.greater(phi_ant_pol1, 180.),
+            phi_ant_pol1-360., phi_ant_pol1)
+        phi_ant_pol1 = deg_2_rad(phi_ant_pol1)
         # Compute the field strength for all pol1 antennas in the LCS
         f_pol1 = tf.stack(self.ant_pol1.field(theta_ant_pol1,
                                               phi_ant_pol1), axis=-1)
@@ -1094,6 +1103,10 @@ class UtArray(Object):
                                 self._ant_pos_pol2[:,0]), shape)
             theta_ant_pol2 = tf.expand_dims(theta, 0) - theta_offset_pol2
             phi_ant_pol2 = tf.expand_dims(phi, 0) - phi_offset_pol2
+            phi_ant_pol2 = wrap_angle_0_360(rad_2_deg(phi_ant_pol2))
+            phi_ant_pol2 = tf.where(tf.math.greater(phi_ant_pol2, 180.),
+                            phi_ant_pol2-360., phi_ant_pol2)
+            phi_ant_pol2 = deg_2_rad(phi_ant_pol2)
             # Compute the field strength for all pol2 antennas in the LCS
             f_pol2 = tf.stack(self.ant_pol2.field(
                 theta_ant_pol2, phi_ant_pol2), axis=-1)
@@ -1106,7 +1119,7 @@ class UtArray(Object):
             # The first half of the array corresponds to polarization 1
             # and the second half to polarization 2
             f_array = tf.concat([f_pol1, f_pol2], 0) # pylint: disable=possibly-used-before-assignment
-            
+        
         return f_array
     
     def show(self):

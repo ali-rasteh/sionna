@@ -113,7 +113,7 @@ class UMi(SystemLevelChannel):
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
         direction, enable_pathloss=True, enable_shadow_fading=True,
-        always_generate_lsp=False, release_number="19.0.0", precision=None):
+        always_generate_lsp=False, release_number="19", precision=None):
 
         # RMa scenario
         scenario = UMiScenario(carrier_frequency, o2i_model, ut_array, bs_array,
