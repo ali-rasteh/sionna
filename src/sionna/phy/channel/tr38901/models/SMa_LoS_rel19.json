@@ -1,0 +1,93 @@
+{
+    "muDSa" : 0.0,
+    "muDSb" : 0.0,
+    "muDSc" : -7.42,
+
+    "sigmaDSa" : 0.0,
+    "sigmaDSb" : 0.0,
+    "sigmaDSc" : 0.6,
+
+    "muASDa" : 0.0,
+    "muASDb" : 0.0,
+    "muASDc" : 0.48,
+
+    "sigmaASDa" : 0.0,
+    "sigmaASDb" : 0.0,
+    "sigmaASDc" : 0.27,
+
+    "muASAa" : 0.0,
+    "muASAb" : 0.0,
+    "muASAc" : 1.43,
+
+    "sigmaASAa" : 0.0,
+    "sigmaASAb" : 0.0,
+    "sigmaASAc" : 0.12,
+
+    "muZSAa" : 0.0,
+    "muZSAb" : 0.0,
+    "muZSAc" : 1.18,
+
+    "sigmaZSAa" : 0.0,
+    "sigmaZSAb" : 0.0,
+    "sigmaZSAc" : 0.05,
+
+    "muK" : 9.0,
+    "sigmaK" : 7.0,
+
+    "muXPR" : 8.0,
+    "sigmaXPR" : 4.0,
+
+    "sigmaSF" : 8.0,
+    "sigmaSF1" : 4.0,
+    "sigmaSF2" : 6.0,
+
+    "muZSD" : 0.14,
+    "sigmaZSD" : 0.16,
+
+    "numClusters" : 15,
+
+    "rTau" : 2.4,
+
+    "zeta" : 3.0,
+
+    "cDSa" : 0.25,
+    "cDSb" : 6.5622,
+    "cDSc" : 3.4084,
+    "cASD" : 2.08,
+    "cASA" : 5.0,
+    "cZSA" : 7.0,
+
+    "CPhiNLoS" : 1.211,
+    "CThetaNLoS" : 1.1088,
+
+    "corrDistDS" : 6,
+    "corrDistASD" : 15,
+    "corrDistASA" : 20,
+    "corrDistSF" : 40,
+    "corrDistK" : 10,
+    "corrDistZSA" : 15,
+    "corrDistZSD" : 15,
+    "corrDistED" : 1,
+
+    "corrASDvsDS" : 0.4,
+    "corrASAvsDS" : 0.8,
+    "corrASAvsSF" : -0.5,
+    "corrASDvsSF" : -0.5,
+    "corrDSvsSF" : -0.4,
+    "corrASDvsASA" : 0,
+    "corrASDvsK" : 0,
+    "corrASAvsK" : -0.2,
+    "corrDSvsK" : -0.4,
+    "corrSFvsK" : 0,
+    "corrZSDvsSF" : 0.0,
+    "corrZSAvsSF" : -0.8,
+    "corrZSDvsK" : 0,
+    "corrZSAvsK" : 0,
+    "corrZSDvsDS" : -0.2,
+    "corrZSAvsDS" : 0,
+    "corrZSDvsASD" : 0.5,
+    "corrZSAvsASD" : 0,
+    "corrZSDvsASA" : -0.3,
+    "corrZSAvsASA" : 0.4,
+    "corrZSDvsZSA": 0
+}

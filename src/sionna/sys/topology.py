@@ -14,9 +14,73 @@ from sionna.phy.utils import insert_dims, scalar_to_shaped_tensor, \
     flatten_dims, sample_bernoulli
 from sionna.phy import PI, config, dtypes, Block, Object
 from sionna.phy.channel.utils import random_ut_properties, deg_2_rad,\
-    set_3gpp_scenario_parameters, \
-    set_3gpp_nearfield_scenario_parameters
+    set_3gpp_scenario_parameters
 
+
+
+class ScenarioTopology(Object):
+    # pylint: disable=line-too-long
+    r"""
+    Class for conveniently storing the scenrio topology information required
+    for system level channel simulation.
+
+    Parameters
+    -----------
+    ut_loc : [batch_size, num_ut, 3], `tf.float`
+        UT locations
+
+    bs_loc : [batch_size, num_cells*3, 3], `tf.float`
+        BS location
+
+    ut_orientations : [batch_size, num_ut, 3], `tf.float`
+        UT orientations [radian]
+
+    bs_orientations : [batch_size, num_cells*3, 3], `tf.float`
+        BS orientations [radian]. Oriented toward the center of the sector.
+
+    ut_velocities : [batch_size, num_ut, 3], `tf.float`
+        UT velocities [m/s]
+
+    in_state : [batch_size, num_ut], `tf.float`
+        Indoor/outdoor state of UTs. `True` means indoor, `False` means
+        outdoor.
+    
+    res_state : [batch_size, num_ut], `tf.float`
+        Residential/commercial state of UTs. `True` means residential, `False` means
+        commercial.
+
+    los : `None`
+        LoS/NLoS states of UTs. This is convenient for directly using the
+        function's output as input to
+        :meth:`~sionna.phy.channel.SystemLevelScenario.set_topology`, ensuring that
+        the LoS/NLoS states adhere to the 3GPP specification (Section 7.4.2 of TR
+        38.901). 
+
+    bs_virtual_loc : [batch_size, num_cells*3, num_ut, 3], `tf.float`
+        Virtual, i.e., mirror, BS positions for each UT, computed according to
+        the wraparound principle 
+    
+    """
+    def __init__(self,
+                 ut_loc,
+                 bs_loc,
+                 ut_orientations,
+                 bs_orientations,
+                 ut_velocities,
+                 in_state,
+                 res_state,
+                 los,
+                 bs_virtual_loc):
+        self.ut_loc = ut_loc
+        self.bs_loc = bs_loc
+        self.ut_orientations = ut_orientations
+        self.bs_orientations = bs_orientations
+        self.ut_velocities = ut_velocities
+        self.in_state = in_state
+        self.res_state = res_state
+        self.los = los
+        self.bs_virtual_loc = bs_virtual_loc
+        super().__init__()
 
 def get_num_hex_in_grid(num_rings):
     r"""
@@ -2232,275 +2296,3 @@ def gen_indoorgrid_topology(batch_size,
             bs_orientations, ut_velocities, in_state, los, bs_virtual_loc
     
     
-def gen_calibration_topology(release_number_3gpp,
-                             calib_stage,
-                            calib_bs_config,
-                            calib_ut_config,
-                            scenario,
-                            batch_size,
-                            num_ut_per_sector,
-                            num_rings=None,
-                            room_length=None,
-                            room_width=None,
-                            min_bs_ut_dist=None,
-                            max_bs_ut_dist=None,
-                            los=None,
-                            return_grid=False,
-                            precision=None):
-    # pylint: disable=line-too-long
-    r"""
-    Generates a batch of topologies with hexagonal cells placed on a spiral
-    grid, 3 base stations per cell, and user terminals (UT) dropped uniformly at random
-    across the cells
-
-    UT orientation and velocity are drawn uniformly randomly within the
-    specified bounds, whereas the BSs point toward the center of their respective sector.
-
-    Parameters provided as `None` are set to valid values according to the chosen
-    ``scenario`` (see [TR38901]_).
-
-    The returned batch of topologies can be fed into the
-    :meth:`~sionna.phy.channel.tr38901.UMa.set_topology` method of the system level models, i.e.
-    :class:`~sionna.phy.channel.tr38901.UMi`, :class:`~sionna.phy.channel.tr38901.UMa`,
-    and :class:`~sionna.phy.channel.tr38901.RMa`.
-
-    Input
-    --------
-    batch_size : `int`
-        Batch size
-
-    num_ut : `int`
-        Number of UTs to sample per batch example
-
-    scenario : "uma" | "umi" | "rma" | "inh-open-office"
-        System level model scenario
-
-    min_bs_ut_dist : `None` (default) | `tf.float`
-        Minimum BS-UT distance [m]
-
-    max_bs_ut_dist : `None` (default) | `tf.float`
-        Maximum BS-UT distance [m]
-
-    los : `bool` | `None` (default)
-         LoS/NLoS states of UTs
-
-    return_grid : `bool` (default: `False`)
-        Determines whether the :class:`~sionna.sys.topology.HexGrid` object
-        is returned
-
-    precision : `None` (default) | "single" | "double"
-        Precision used for internal calculations and outputs.
-        If set to `None`,
-        :attr:`~sionna.phy.config.Config.precision` is used.
-
-    Output
-    ------
-    ut_loc : [batch_size, num_ut, 3], `tf.float`
-        UT locations
-
-    bs_loc : [batch_size, num_cells*3, 3], `tf.float`
-        BS location
-
-    ut_orientations : [batch_size, num_ut, 3], `tf.float`
-        UT orientations [radian]
-
-    bs_orientations : [batch_size, num_cells*3, 3], `tf.float`
-        BS orientations [radian]. Oriented toward the center of the sector.
-
-    ut_velocities : [batch_size, num_ut, 3], `tf.float`
-        UT velocities [m/s]
-
-    in_state : [batch_size, num_ut], `tf.float`
-        Indoor/outdoor state of UTs. `True` means indoor, `False` means
-        outdoor.
-
-    los : `None`
-        LoS/NLoS states of UTs. This is convenient for directly using the
-        function's output as input to
-        :meth:`~sionna.phy.channel.SystemLevelScenario.set_topology`, ensuring that
-        the LoS/NLoS states adhere to the 3GPP specification (Section 7.4.2 of TR
-        38.901). 
-
-    bs_virtual_loc : [batch_size, num_cells*3, num_ut, 3], `tf.float`
-        Virtual, i.e., mirror, BS positions for each UT, computed according to
-        the wraparound principle 
-
-    grid : :class:`~sionna.sys.topology.HexGrid`
-        Hexagonal grid object. Only returned if ``return_grid`` is `True`.
-
-    Example
-    -------
-    .. code-block:: python
-
-        from sionna.phy.channel.tr38901 import PanelArray, UMi
-        from sionna.sys import gen_hexgrid_topology
-
-        # Create antenna arrays
-        bs_array = PanelArray(num_rows_per_panel = 4,
-                              num_cols_per_panel = 4,
-                              polarization = 'dual',
-                              polarization_type = 'VH',
-                              antenna_pattern = '38.901',
-                              carrier_frequency = 3.5e9)
-
-        ut_array = PanelArray(num_rows_per_panel = 1,
-                              num_cols_per_panel = 1,
-                              polarization = 'single',
-                              polarization_type = 'V',
-                              antenna_pattern = 'omni',
-                              carrier_frequency = 3.5e9)
-        # Create channel model
-        channel_model = UMi(carrier_frequency = 3.5e9,
-                            o2i_model = 'low',
-                            ut_array = ut_array,
-                            bs_array = bs_array,
-                            direction = 'uplink')
-        # Generate the topology
-        topology = gen_hexgrid_topology(batch_size=100,
-                                        num_rings=1,
-                                        num_ut_per_sector=3,
-                                        scenario='umi')
-        # Set the topology
-        channel_model.set_topology(*topology)
-        channel_model.show_topology()
-
-    .. image:: ../figures/drop_uts_in_hexgrid.png
-    """
-    # -----------------#
-    # 3GPP parameters #
-    # -----------------#
-    if calib_stage == 'near-field':
-        params = set_3gpp_nearfield_scenario_parameters(scenario,
-                                                        min_bs_ut_dist,
-                                                        precision=precision)
-    else:
-        params = set_3gpp_scenario_parameters(scenario,
-                                            min_bs_ut_dist,
-                                            precision=precision)
-    min_bs_ut_dist, isd, bs_height, min_ut_height, max_ut_height, \
-        indoor_probability, min_ut_velocity, max_ut_velocity = params
-
-    if precision is None:
-        rdtype = config.tf_rdtype
-    else:
-        rdtype = dtypes[precision]["tf"]["rdtype"]
-
-    # ------------ #
-    # BS placement #
-    # ------------ #
-    if scenario == "inh-open-office":
-        grid = IndoorOfficeGrid(isd=isd,
-                                cell_height=bs_height,
-                                room_length=room_length,
-                                room_width=room_width,
-                                precision=precision)
-        num_sectors = 1
-    else:
-        grid = HexGrid(isd=isd,
-                    cell_height=bs_height,
-                    num_rings=num_rings,
-                    precision=precision)
-        num_sectors = 3
-    num_cells = grid.num_cells
-
-    # [num_cells*num_sectors, 3]
-    bs_loc = tf.repeat(grid.cell_loc, num_sectors, axis=0)
-    # [1, num_cells*num_sectors, 3]
-    bs_loc = insert_dims(bs_loc, num_dims=1, axis=0)
-    # [batch_size, num_cells*num_sectors, 3]
-    bs_loc = tf.tile(bs_loc, [batch_size, 1, 1])
-
-    # ----------------#
-    # BS orientation #
-    # ----------------#
-    if scenario == "inh-open-office":
-        bs_yaw = tf.zeros([batch_size, num_cells*1, 1], rdtype)
-    else:
-        # Yaw varies according to the sector
-        # [num_cells*num_sectors]
-        bs_yaw = tf.tile([tf.constant(PI/6.0, rdtype),
-                        tf.constant(5.0*PI/6.0, rdtype),
-                        tf.constant(3.0*PI/2.0, rdtype)], [num_cells])
-        # [1, num_cells*num_sectors]
-        bs_yaw = insert_dims(bs_yaw, 1, axis=0)
-        # [batch_size, num_cells*num_sectors]
-        bs_yaw = tf.tile(bs_yaw, [batch_size, 1])
-        # [batch_size, num_cells*num_sectors, 1]
-        bs_yaw = insert_dims(bs_yaw, 1, axis=-1)
-
-    # TODO check: this could be a bug
-    # BSs are downtilted towards the sector center
-    if scenario == "inh-open-office":
-        bs_downtilt = tf.constant(PI, rdtype)
-    else:
-        # bs_downtilt = tf.cast(0, rdtype)
-        bs_downtilt = tf.cast(0.5*PI, rdtype)
-
-    # [batch_size, num_cells*num_sectors, 1]
-    bs_pitch = tf.fill([batch_size, num_cells*num_sectors, 1], bs_downtilt)
-
-    # [batch_size, num_cells*num_sectors, 1]
-    bs_roll = tf.zeros([batch_size, num_cells*num_sectors, 1], rdtype)
-
-    # [batch_size, num_cells*num_sectors, 3]
-    bs_orientations = tf.concat([bs_yaw, bs_pitch, bs_roll], axis=-1)
-
-    # ----------#
-    # Drop UTs #
-    # ----------#
-    # ut_loc: [batch_size, num_cells, num_sectors, num_ut_per_sector, 3]
-    ut_loc, bs_virtual_loc, _ = grid(batch_size,
-                                     num_ut_per_sector,
-                                     min_bs_ut_dist,
-                                     max_bs_ut_dist=max_bs_ut_dist,
-                                     min_ut_height=min_ut_height,
-                                     max_ut_height=max_ut_height)
-    # [batch_size, num_ut, 3]
-    ut_loc = flatten_dims(ut_loc, num_dims=3, axis=1)
-    num_ut = ut_loc.shape[1]
-
-    # [batch_size, num_ut, num_cells, 3]
-    bs_virtual_loc = flatten_dims(bs_virtual_loc, num_dims=3, axis=1)
-    # [batch_size, num_ut, num_cells*num_sectors, 3]
-    bs_virtual_loc = tf.repeat(bs_virtual_loc, num_sectors, axis=2)
-    # [batch_size, num_cells*num_sectors, num_ut, 3]
-    bs_virtual_loc = tf.transpose(bs_virtual_loc, [0, 2, 1, 3])
-
-    # ----------#
-    # UT state #
-    # ----------#
-    # Draw random UT orientation, velocity and indoor state
-    _, ut_velocities, in_state = \
-        random_ut_properties(batch_size,
-                              num_ut,
-                              indoor_probability,
-                              min_ut_velocity,
-                              max_ut_velocity,
-                              precision=precision)
-
-    # Randomly generate the UT orientations
-    if calib_ut_config in ['None', "A"]:
-        ut_bearing = config.tf_rng.uniform([batch_size, num_ut], minval=-PI,
-                                        maxval=PI, dtype=rdtype)
-        ut_downtilt = tf.constant(0.5*PI, shape=[batch_size, num_ut], dtype=rdtype)
-        ut_slant = tf.constant(0.0, shape=[batch_size, num_ut], dtype=rdtype)
-    elif calib_ut_config in ["B", "C"]:
-        ut_bearing = config.tf_rng.uniform([batch_size, num_ut], minval=-PI,
-                                        maxval=PI, dtype=rdtype)
-        ut_downtilt = tf.constant(0.25*PI, shape=[batch_size, num_ut], dtype=rdtype)
-        ut_slant = tf.constant(0.0, shape=[batch_size, num_ut], dtype=rdtype)
-    elif calib_ut_config in ["D"]:
-        ut_bearing = tf.constant(0.0, shape=[batch_size, num_ut], dtype=rdtype)
-        ut_downtilt = tf.constant(0.0, shape=[batch_size, num_ut], dtype=rdtype)
-        ut_slant = tf.constant(0.0, shape=[batch_size, num_ut], dtype=rdtype)
-        
-    ut_orientations = tf.stack([ut_bearing, ut_downtilt, ut_slant], axis=-1)
-
-    if return_grid:
-        return ut_loc, bs_loc, ut_orientations, \
-            bs_orientations, ut_velocities, in_state, los, bs_virtual_loc, grid
-    else:
-        return ut_loc, bs_loc, ut_orientations, \
-            bs_orientations, ut_velocities, in_state, los, bs_virtual_loc
-    
-

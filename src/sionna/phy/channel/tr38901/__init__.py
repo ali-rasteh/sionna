@@ -10,14 +10,17 @@ from .antenna import AntennaElement, AntennaPanel, PanelArray, Antenna,\
 from .lsp import LSP, LSPGenerator
 from .rays import Rays, RaysGenerator
 from .system_level_scenario import SystemLevelScenario
+from .utils import ScenarioCalibrationParameters
 from .rma_scenario import RMaScenario
 from .umi_scenario import UMiScenario
 from .uma_scenario import UMaScenario
+from .sma_scenario import SMaScenario
 from .inh_open_office_scenario import InHOpenOfficeScenario
 from .channel_coefficients import Topology, ChannelCoefficientsGenerator
 from .system_level_channel import SystemLevelChannel
 from .rma import RMa
 from .uma import UMa
+from .sma import SMa
 from .umi import UMi
 from .inh_open_office import InHOpenOffice
 from .tdl import TDL

@@ -98,6 +98,7 @@ class SystemLevelChannel(ChannelModel):
                      bs_orientations=None,
                      ut_velocities=None,
                      in_state=None,
+                     residential_state=None,
                      los=None,
                      bs_virtual_loc=None):
         r"""
@@ -132,6 +133,10 @@ class SystemLevelChannel(ChannelModel):
             Indoor/outdoor state of UTs. `True` means indoor and `False`
             means outdoor.
 
+        residential_state : `None` (default) | [batch size, num_ut], `tf.bool`
+            Residential/commercial state of UTs. `True` means residential and
+            `False` means commercial.
+
         los : `None` (default) | `tf.bool`
             If not `None`, all UTs located outdoor are
             forced to be in LoS if ``los`` is set to `True`, or in NLoS
@@ -152,6 +157,7 @@ class SystemLevelChannel(ChannelModel):
                                                       bs_orientations,
                                                       ut_velocities,
                                                       in_state,
+                                                      residential_state,
                                                       los,
                                                       bs_virtual_loc)
 

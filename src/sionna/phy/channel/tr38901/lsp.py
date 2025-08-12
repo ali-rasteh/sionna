@@ -108,8 +108,15 @@ class LSPGenerator(Object):
             pl_o2i = self._o2i_low_loss()
         elif self._scenario.o2i_model == 'high': # 'high'
             pl_o2i = self._o2i_high_loss()
+        elif self._scenario.o2i_model == 'low-A':
+            pl_o2i = self._o2i_low_loss_A()
         elif self._scenario.o2i_model == '50/50':
             pl_o2i = self._o2i_50_50_loss()
+        else:
+            pl_o2i = tf.zeros_like(pl_b)
+
+        if self._scenario.o2i_car_model == 'non-metalic':
+            pl_o2i += self._o2i_car_loss()
 
         ## Total path loss, including O2I penetration
         pl = pl_b + pl_o2i
@@ -479,14 +486,14 @@ class LSPGenerator(Object):
 
         # Material penetration losses
         # fc must be in GHz
-        # l_iirglass = 23. + 0.3*fc
+        # l_irrglass = 23. + 0.3*fc
         # TODO Release 19
-        l_iirglass = 25.4 + 0.11*fc
+        l_irrglass = 25.4 + 0.11*fc
         l_concrete = 5. + 4.*fc
 
         # Path loss through external wall
         pl_tw = 5.0 - 10.*log10(0.7*tf.math.pow(tf.constant(10.,
-            self.rdtype), -l_iirglass/10.0)
+            self.rdtype), -l_irrglass/10.0)
                 + 0.3*tf.math.pow(tf.constant(10.,
                 self.rdtype), -l_concrete/10.0))
 
@@ -511,12 +518,65 @@ class LSPGenerator(Object):
 
         return pl_tw + pl_in + pl_rnd
     
+    def _o2i_low_loss_A(self):
+        """
+        Compute for each BS-UT link the pathloss due to the O2I penetration loss
+        in dB with the low-loss A model.
+        See section 7.4.3.1 of 38.901 specification.
 
-    def _o2i_50_50_loss(self):
+        UTs located outdoor (LoS and NLoS) get O2I pathloss of 0dB.
+
+        Input
+        -----
+        None
+
+        Output
+        -------
+            Tensor with shape
+            [batch size, number of BSs, number of UTs]
+            containing the O2I penetration low-loss in dB for each BS-UT link
+        """
+
         fc = self._scenario.carrier_frequency/1e9 # Carrier frequency (GHz)
         batch_size = self._scenario.batch_size
         num_ut = self._scenario.num_ut
         num_bs = self._scenario.num_bs
+
+        # Material penetration losses
+        # fc must be in GHz
+        l_glass = 2. + 0.2*fc
+        l_plywood = 1.03 + 0.17*fc
+
+        # Path loss through external wall
+        pl_tw = 5.0 - 10.*log10(0.3*tf.math.pow(tf.constant(10.,
+            self.rdtype), -l_glass/10.0) + 0.7*tf.math.pow(
+                tf.constant(10., self.rdtype),
+                    -l_plywood/10.0))
+
+        # Filtering-out the O2I pathloss for UTs located outdoor
+        indoor_mask = tf.where(self._scenario.indoor, tf.constant(1.0,
+            self.rdtype), tf.zeros([batch_size, num_ut],
+            self.rdtype))
+        indoor_mask = tf.expand_dims(indoor_mask, axis=1)
+        pl_tw = pl_tw*indoor_mask
+
+        # Pathloss due to indoor propagation
+        # The indoor 2D distance for outdoor UTs is 0
+        pl_in = 0.5*self._scenario.distance_2d_in
+
+        # Random path loss component
+        # Gaussian distributed with standard deviation 4.4 in dB
+        pl_rnd = config.tf_rng.normal(shape=[batch_size, num_bs, num_ut],
+                                      mean=0.0,
+                                      stddev=4.4,
+                                      dtype=self.rdtype)
+        pl_rnd = pl_rnd*indoor_mask
+
+        return pl_tw + pl_in + pl_rnd
+
+    def _o2i_50_50_loss(self):
+        batch_size = self._scenario.batch_size
+        num_ut = self._scenario.num_ut
 
         # Filtering-out the O2I pathloss for outdoor UTs
         indoor_mask = tf.where(self._scenario.indoor, 1.0,
@@ -542,10 +602,6 @@ class LSPGenerator(Object):
 
         # Create two masks of the same shape as indoor_mask
         mask_1 = tf.scatter_nd(indices_1, updates_1, tf.shape(indoor_mask))
-        mask_2 = tf.scatter_nd(indices_2, updates_2, tf.shape(indoor_mask))
-        # mask_1 = tf.tensor_scatter_nd_update(tf.zeros_like(indoor_mask), indices_1, tf.cast(tf.ones_like(indices_1[:, 0]), dtype=indoor_mask.dtype))
-        # mask_2 = tf.tensor_scatter_nd_update(tf.zeros_like(indoor_mask), indices_2, tf.cast(tf.ones_like(indices_2[:, 0]), dtype=indoor_mask.dtype))
-
         low_loss = self._o2i_low_loss()
         high_loss = self._o2i_high_loss()
 
@@ -554,3 +610,42 @@ class LSPGenerator(Object):
         pl_50_50 = tf.where(tf.equal(mask_1, 1.0), low_loss, high_loss)
 
         return pl_50_50
+
+    def _o2i_car_loss(self):
+        """
+        Compute for each BS-UT link the pathloss due to the O2I penetration loss
+        in dB with the car loss model.
+        See section 7.4.3.2 of 38.901 specification.
+
+        UTs located out of car (LoS and NLoS) get O2I pathloss of 0dB.
+
+        Input
+        -----
+        None
+
+        Output
+        -------
+            Tensor with shape
+            [batch size, number of BSs, number of UTs]
+            containing the O2I penetration car-loss in dB for each BS-UT link
+        """
+
+        batch_size = self._scenario.batch_size
+        num_ut = self._scenario.num_ut
+        num_bs = self._scenario.num_bs
+
+        # Filtering-out the O2I pathloss for UTs located outdoor
+        outdoor_mask = tf.where(self._scenario.indoor, tf.constant(0.0,
+            self.rdtype), tf.ones([batch_size, num_ut],
+            self.rdtype))
+        outdoor_mask = tf.expand_dims(outdoor_mask, axis=1)
+
+        # Random path loss component
+        # Gaussian distributed with standard deviation 4.4 in dB
+        pl_rnd = config.tf_rng.normal(shape=[batch_size, num_bs, num_ut],
+                                      mean=9.0,
+                                      stddev=5.0,
+                                      dtype=self.rdtype)
+        pl_rnd = pl_rnd*outdoor_mask
+
+        return pl_rnd

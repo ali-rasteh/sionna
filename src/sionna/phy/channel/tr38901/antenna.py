@@ -211,7 +211,7 @@ class AntennaElement(Object):
         return (f_theta, f_phi)
 
         
-    def _polarization_model_38901_2(self, power, theta, phi):
+    def _polarization_model_38901_2(self, power, theta=None, phi=None):
         """
         Polarization model-2 from TR38901 (Equations 7.3-4/5)
 

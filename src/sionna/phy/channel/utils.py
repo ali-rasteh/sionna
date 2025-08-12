@@ -781,6 +781,26 @@ def set_3gpp_scenario_parameters(scenario,
             'indoor_probability': tf.constant(0.0, rdtype),
             'min_ut_velocity': tf.constant(3./3.6, rdtype),
             'max_ut_velocity': tf.constant(3./3.6, rdtype)
+        },
+        'sma': {
+            'min_bs_ut_dist': tf.constant(35., rdtype),
+            'isd': tf.constant(1299., rdtype),
+            'bs_height': tf.constant(35., rdtype),
+            'min_ut_height': tf.constant(1.5, rdtype),
+            'max_ut_height': tf.constant(1.5, rdtype),
+            'indoor_probability': tf.constant(0.8, rdtype),
+            'min_ut_velocity_indoor': tf.constant(0.0, rdtype),
+            'max_ut_velocity_indoor': tf.constant(0.0, rdtype),
+        },
+        'sma-calibration': {
+            'min_bs_ut_dist': tf.constant(35., rdtype),
+            'isd': tf.constant(1299., rdtype),
+            'bs_height': tf.constant(35., rdtype),
+            'min_ut_height': tf.constant(1.5, rdtype),
+            'max_ut_height': tf.constant(1.5, rdtype),
+            'indoor_probability': tf.constant(0.8, rdtype),
+            'min_ut_velocity': tf.constant(3./3.6, rdtype),
+            'max_ut_velocity': tf.constant(3./3.6, rdtype),
         }
     }
     # Setting the scenario parameters

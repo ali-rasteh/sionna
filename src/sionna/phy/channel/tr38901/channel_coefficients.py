@@ -654,7 +654,6 @@ class ChannelCoefficientsGenerator(Object):
         exp_rx = tf.exp(tf.complex(tf.constant(0.,
                                     self.rdtype), exp_rx))
 
-
         near_field = (d1 is not None)
         if near_field:
             print("Using near-field approximation for the TX antenna array")
@@ -743,7 +742,6 @@ class ChannelCoefficientsGenerator(Object):
 
         return h_field
 
-
     def _step_11_d1(self, topology, rays, c_ds, ed):
         # pylint: disable=line-too-long
         r"""
@@ -769,36 +767,21 @@ class ChannelCoefficientsGenerator(Object):
 
         # TODO Check if it refers to the 3D distance between reference point at TRP and UT side
         d3d = topology.distance_3d
-        c = tf.constant(299792458.0, dtype=self.rdtype)
+        speed_of_light = tf.constant(SPEED_OF_LIGHT, self.rdtype)
         s_trp = rays.s_trp
         powers = rays.powers
         delays = rays.delays
         num_clusters = tf.shape(rays.aoa)[-2]
         num_rays = tf.shape(rays.aoa)[-1]
 
-        # print("d3d", d3d.shape)
-        # print("s_trp", s_trp.shape)
-        # print("ed", ed.shape)
-        # print("powers", powers.shape)
-        # print("delays", delays.shape)
-        # print("c_ds", c_ds.shape)
-
-
         delays_rays = tf.expand_dims(delays, axis=-1)
         delays_rays = tf.tile(delays_rays, multiples=[1, 1, 1, 1, num_rays])
-        # print("delays_rays", delays.shape)
-
 
         _, strongest_clusters_ind = tf.math.top_k(powers, k=2, sorted=False)
-        # print("strongest_clusters_ind", strongest_clusters_ind.shape)
         # One-hot encode top 2 indices along the last dimension and sum them to create a mask
         strongest_clusters_mask = tf.reduce_sum(tf.one_hot(strongest_clusters_ind, depth=num_clusters, axis=-1), axis=-2)
         strongest_clusters_mask = tf.expand_dims(strongest_clusters_mask, axis=-1)
         strongest_clusters_mask = tf.tile(strongest_clusters_mask, multiples=[1, 1, 1, 1, num_rays])
-        # print("strongest_clusters_mask", strongest_clusters_mask.shape)
-        # print(strongest_clusters_mask[0,0,0,0,:])
-        # print(strongest_clusters_mask[0,0,0,:,0])
-        # print(strongest_clusters_mask[0,0,0,:,:])
 
         mask_sub_cl_1 = tf.reduce_any(
             tf.equal(tf.range(num_rays)[tf.newaxis, :], self._sub_cl_1_ind[:, tf.newaxis]), axis=0)
@@ -806,28 +789,18 @@ class ChannelCoefficientsGenerator(Object):
             tf.equal(tf.range(num_rays)[tf.newaxis, :], self._sub_cl_2_ind[:, tf.newaxis]), axis=0)
         mask_sub_cl_3 = tf.reduce_any(
             tf.equal(tf.range(num_rays)[tf.newaxis, :], self._sub_cl_3_ind[:, tf.newaxis]), axis=0)
-        # print("mask_sub_cl_1", mask_sub_cl_1.shape)
-        # print("mask_sub_cl_1", mask_sub_cl_1)
         mask_sub_cl_1 = tf.reshape(mask_sub_cl_1, [1, 1, 1, 1, -1]) * strongest_clusters_mask
         mask_sub_cl_2 = tf.reshape(mask_sub_cl_2, [1, 1, 1, 1, -1]) * strongest_clusters_mask
         mask_sub_cl_3 = tf.reshape(mask_sub_cl_3, [1, 1, 1, 1, -1]) * strongest_clusters_mask
-        # print("mask_sub_cl_1", mask_sub_cl_1.shape)
-        # print("mask_sub_cl_1", mask_sub_cl_1[0,0,0,:,:])
 
         c_ds_rays = tf.expand_dims(tf.expand_dims(c_ds, axis=-1), axis=-1)
         delays_rays = tf.where(mask_sub_cl_1, delays_rays+self._sub_cl_delay_offsets[0]*c_ds_rays, delays_rays)
         delays_rays = tf.where(mask_sub_cl_2, delays_rays+self._sub_cl_delay_offsets[1]*c_ds_rays, delays_rays)
         delays_rays = tf.where(mask_sub_cl_3, delays_rays+self._sub_cl_delay_offsets[2]*c_ds_rays, delays_rays)
-        # print("delays_rays", delays_rays.shape)
 
-
-        d_1 = tf.expand_dims(s_trp, axis=-1) * (tf.expand_dims(tf.expand_dims(d3d, axis=-1), axis=-1) + tf.expand_dims(tf.expand_dims(ed, axis=-1), axis=-1)*c + delays_rays*c)
+        d_1 = tf.expand_dims(s_trp, axis=-1) * (tf.expand_dims(tf.expand_dims(d3d, axis=-1), axis=-1) + tf.expand_dims(tf.expand_dims(ed, axis=-1), axis=-1)*speed_of_light + delays_rays*speed_of_light)
 
         return d_1
-        
-
-
-
 
     def _step_11_nlos(self, phi, topology, rays, t, c_ds, ed=None):
         # pylint: disable=line-too-long

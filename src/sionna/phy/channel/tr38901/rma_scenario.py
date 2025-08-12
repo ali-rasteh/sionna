@@ -8,6 +8,7 @@ import tensorflow as tf
 from sionna.phy import SPEED_OF_LIGHT, PI
 from sionna.phy.utils import log10
 from . import SystemLevelScenario
+from . import ScenarioCalibrationParameters
 
 class RMaScenario(SystemLevelScenario):
     r"""
@@ -58,9 +59,12 @@ class RMaScenario(SystemLevelScenario):
         average_street_width=20.0, average_building_height=5.0,
         precision=None):
 
+        assert carrier_frequency > 0.5e9 and carrier_frequency < 30e9, \
+            "RMa scenario is only defined for carrier frequencies > 0.5 GHz and < 30 GHz"
+        
         # Only the low-loss O2I model if available for RMa.
         super().__init__(carrier_frequency, 'low', ut_array, bs_array,
-            direction, enable_pathloss, enable_shadow_fading,
+            direction, None, enable_pathloss, enable_shadow_fading,
             precision=precision)
 
         # Average street width [m]
@@ -133,8 +137,15 @@ class RMaScenario(SystemLevelScenario):
     def s_trp_parameters(self):
         r"""Tuple containing the parameters for the Near-Field (NF) S_TRP model
         
-        (K1, Alpha, Beta)"""
-
+        (K1, Alpha, Beta)
+        
+        K1 : `int`
+            K1 parameter
+        Alpha : `tf.float`
+            Alpha parameter
+        Beta : `tf.float`
+            Beta parameter
+        """
         return (0,
                 tf.constant(0.0, self.rdtype),
                 tf.constant(0.0, self.rdtype))
@@ -191,6 +202,7 @@ class RMaScenario(SystemLevelScenario):
                                         self.rdtype), log_mean_zsd)
         # Excess delay for absolute time of arrival (ToA) estimation
         log_mean_ed_nlos = tf.constant(-8.33, self.rdtype)
+        # A very small value for LoS case
         log_mean_ed_los = tf.constant(-30.0, self.rdtype)
         log_mean_ed = tf.where(self.los, log_mean_ed_los, log_mean_ed_nlos)
 
@@ -230,7 +242,7 @@ class RMaScenario(SystemLevelScenario):
         log_std_zsd = self.get_param("sigmaZSD")
         # Excess delay for absolute time of arrival (ToA) estimation
         log_std_ed_nlos = tf.constant(0.26, self.rdtype)
-        log_std_ed_los = tf.constant(0.01, self.rdtype)
+        log_std_ed_los = tf.constant(0., self.rdtype)
         log_std_ed = tf.where(self.los, log_std_ed_los, log_std_ed_nlos)
 
         lsp_log_std = tf.stack([log_std_ds,
@@ -304,3 +316,43 @@ class RMaScenario(SystemLevelScenario):
         pl_b = tf.where(self.los, pl_los, pl_nlos)
 
         self._pl_b = pl_b
+
+    def get_calibration_parameters(self, nearfield=False):
+        r"""Returns the calibration parameters for the RMa scenario
+
+        Input
+        -----
+        nearfield : `bool`, (default `False`)
+            If `True`, returns the calibration parameters for the near-field
+            regime. Otherwise, returns the calibration parameters for the far-field
+            regime.
+
+        Output
+        -------
+        : `dict`
+            Dictionary containing the calibration parameters
+        """
+        if nearfield:
+            parameters = ScenarioCalibrationParameters(
+                min_bs_ut_dist = tf.constant(35., self.rdtype),
+                isd = tf.constant(1732., self.rdtype),
+                bs_height = tf.constant(35., self.rdtype),
+                min_ut_height = tf.constant(1.5, self.rdtype),
+                max_ut_height = tf.constant(1.5, self.rdtype),
+                indoor_probability = tf.constant(0.8, self.rdtype),
+                min_ut_velocity = tf.constant(3./3.6, self.rdtype),
+                max_ut_velocity = tf.constant(3./3.6, self.rdtype),
+            )
+        else:
+            parameters = ScenarioCalibrationParameters(
+                min_bs_ut_dist = tf.constant(35., self.rdtype),
+                isd = tf.constant(1732., self.rdtype),
+                bs_height = tf.constant(35., self.rdtype),
+                min_ut_height = tf.constant(1.5, self.rdtype),
+                max_ut_height = tf.constant(1.5, self.rdtype),
+                indoor_probability = tf.constant(0.8, self.rdtype),
+                min_ut_velocity = tf.constant(3./3.6, self.rdtype),
+                max_ut_velocity = tf.constant(3./3.6, self.rdtype),
+            )
+        return parameters
+    

@@ -7,7 +7,8 @@ import tensorflow as tf
 
 from sionna.phy import SPEED_OF_LIGHT
 from sionna.phy.utils import log10
-from sionna.phy.channel.tr38901 import SystemLevelScenario
+from . import SystemLevelScenario
+from . import ScenarioCalibrationParameters
 
 class InHOpenOfficeScenario(SystemLevelScenario):
     r"""
@@ -109,8 +110,15 @@ class InHOpenOfficeScenario(SystemLevelScenario):
     def s_trp_parameters(self):
         r"""Tuple containing the parameters for the Near-Field (NF) S_TRP model
         
-        (K1, Alpha, Beta)"""
-
+        (K1, Alpha, Beta)
+        
+        K1 : `int`
+            K1 parameter
+        Alpha : `tf.float`
+            Alpha parameter
+        Beta : `tf.float`
+            Beta parameter
+        """
         return (4,
                 tf.constant(1.25, self.rdtype),
                 tf.constant(1.27, self.rdtype))
@@ -167,6 +175,7 @@ class InHOpenOfficeScenario(SystemLevelScenario):
         log_mean_zsd = tf.where(self.los, log_mean_zsd_los, log_mean_zsd_nlos)
         # Excess delay for absolute time of arrival (ToA) estimation
         log_mean_ed_nlos = tf.constant(-8.6, self.rdtype)
+        # A very small value for LoS case
         log_mean_ed_los = tf.constant(-30.0, self.rdtype)
         log_mean_ed = tf.where(self.los, log_mean_ed_los, log_mean_ed_nlos)
 
@@ -200,7 +209,7 @@ class InHOpenOfficeScenario(SystemLevelScenario):
         log_std_zsd = tf.where(self.los, log_std_zsd_los, log_std_zsd_nlos)
         # Excess delay for absolute time of arrival (ToA) estimation
         log_std_ed_nlos = tf.constant(0.1, self.rdtype)
-        log_std_ed_los = tf.constant(0.01, self.rdtype)
+        log_std_ed_los = tf.constant(0., self.rdtype)
         log_std_ed = tf.where(self.los, log_std_ed_los, log_std_ed_nlos)
 
         lsp_log_std = tf.stack([log_std_ds,
@@ -250,7 +259,47 @@ class InHOpenOfficeScenario(SystemLevelScenario):
 
         self._pl_b = pl_b
 
+    def get_calibration_parameters(self, nearfield=False):
+        r"""Returns the calibration parameters for the InHOpenOffice scenario
 
+        Input
+        -----
+        nearfield : `bool`, (default `False`)
+            If `True`, returns the calibration parameters for the near-field
+            regime. Otherwise, returns the calibration parameters for the far-field
+            regime.
+
+        Output
+        -------
+        : `dict`
+            Dictionary containing the calibration parameters
+        """
+        if nearfield:
+            parameters = ScenarioCalibrationParameters(
+                min_bs_ut_dist = tf.constant(0., self.rdtype),
+                isd = tf.constant(20., self.rdtype),
+                bs_height = tf.constant(3., self.rdtype),
+                min_ut_height = tf.constant(1., self.rdtype),
+                max_ut_height = tf.constant(1., self.rdtype),
+                # indoor probability is 0 to prevent the o2i from being applied
+                indoor_probability = tf.constant(0.0, self.rdtype),
+                min_ut_velocity = tf.constant(3./3.6, self.rdtype),
+                max_ut_velocity = tf.constant(3./3.6, self.rdtype)
+            )
+        else:
+            parameters = ScenarioCalibrationParameters(
+                min_bs_ut_dist = tf.constant(0., self.rdtype),
+                isd = tf.constant(20., self.rdtype),
+                bs_height = tf.constant(3., self.rdtype),
+                min_ut_height = tf.constant(1., self.rdtype),
+                max_ut_height = tf.constant(1., self.rdtype),
+                # indoor probability is 0 to prevent the o2i from being applied
+                indoor_probability = tf.constant(0.0, self.rdtype),
+                min_ut_velocity = tf.constant(3./3.6, self.rdtype),
+                max_ut_velocity = tf.constant(3./3.6, self.rdtype)
+            )
+        return parameters
+    
     def _sample_indoor_distance(self):
         r"""Set indoor distances equal to the total distances and
         outdoor distances to zero, because this scenario

@@ -44,6 +44,10 @@ class SystemLevelScenario(Object):
     direction : "uplink" |"downlink"
         Link direction
 
+    o2i_car_model : `None` (default) | "non-metalic"
+        Outdoor to indoor (O2I) car pathloss model, used for outdoor UTs,
+        see section 7.4.3.2 from 38.901 specification.
+
     enable_pathloss : `bool`, (default `True`)
         If `True`, apply pathloss. Otherwise doesn't.
 
@@ -56,8 +60,8 @@ class SystemLevelScenario(Object):
         :attr:`~sionna.phy.config.Config.precision` is used.
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
-        direction, enable_pathloss=True, enable_shadow_fading=True, release_number="19",
-        precision=None):
+        direction, o2i_car_model=None, enable_pathloss=True, \
+        enable_shadow_fading=True, release_number="19", precision=None):
         super().__init__(precision=precision)
 
         # Carrier frequency (Hz)
@@ -68,8 +72,12 @@ class SystemLevelScenario(Object):
             self.rdtype)
 
         # O2I model
-        assert o2i_model in ('low', 'high', '50/50'), "o2i_model must be 'low' or 'high' or '50/50'"
+        assert o2i_model in ('low', 'high', 'low-A', '50/50'), "o2i_model must be 'low' or 'high' or 'low-A' or '50/50'"
         self._o2i_model = o2i_model
+        # O2I car model
+        if o2i_car_model is not None:
+            assert o2i_car_model in ("non-metalic"), "o2i_car_model must be 'non-metalic'"
+        self._o2i_car_model = o2i_car_model
 
         # UTs and BSs arrays
         assert isinstance(ut_array, PanelArray) or isinstance(ut_array, UtArray), \
@@ -97,6 +105,7 @@ class SystemLevelScenario(Object):
         self._bs_orientations = None
         self._ut_velocities = None
         self._in_state = None
+        self._residential_state = None
         self._requested_los = None
 
         # Load parameters for this scenario
@@ -208,6 +217,13 @@ class SystemLevelScenario(Object):
         Indoor state of UTs. `True` is indoor, `False` otherwise.
         [batch size, number of UTs]"""
         return self._in_state
+    
+    @property
+    def residential(self):
+        r"""
+        Residential state of UTs. `True` is residential, `False` is commercial.
+        [batch size, number of UTs]"""
+        return self._residential_state
 
     @property
     def los(self):
@@ -373,7 +389,7 @@ class SystemLevelScenario(Object):
         See section 7.4.1 of 38.901 specification.
         [batch size, num BS, num UT]"""
         return self._pl_b
-
+            
     def set_topology(self,
                      ut_loc=None,
                      bs_loc=None,
@@ -381,6 +397,7 @@ class SystemLevelScenario(Object):
                      bs_orientations=None,
                      ut_velocities=None,
                      in_state=None,
+                     residential_state=None,
                      los=None,
                      bs_virtual_loc=None):
         # pylint: disable=line-too-long
@@ -414,6 +431,10 @@ class SystemLevelScenario(Object):
         in_state : `None` (default) | [batch size, number of UTs], `tf.bool`
             Indoor/outdoor state of UTs. `True` means indoor and `False`
             means outdoor.
+
+        residential_state : `None` (default) | [batch size, number of UTs], `tf.bool`
+            Residential/commercial state of UTs. `True` means residential and
+            `False` means commercial.
 
         los : `None` (default) | `tf.bool`
             If not `None`, all UTs located outdoor are
@@ -490,23 +511,42 @@ class SystemLevelScenario(Object):
             self._in_state = in_state
             need_for_update = True
 
+        if residential_state is not None:
+            self._residential_state = residential_state
+            need_for_update = True
+
         if los is not None:
             self._requested_los = los
             need_for_update = True
 
         if need_for_update:
-            # Update topology-related quantities
-            self._compute_distance_2d_3d_and_angles()
-            self._sample_indoor_distance()
-            self._sample_los()
-
-            # Compute the LSPs means and stds
-            self._compute_lsp_log_mean_std()
-
-            # Compute the basic path-loss
-            self._compute_pathloss_basic()
+            self.topology_updated_callback()
 
         return need_for_update
+    
+    def topology_updated_callback(self):
+        """
+        Updates internal quantities. Must be called at every update of the
+        scenario that changes the state of UTs or their locations.
+
+        Input
+        ------
+        None
+
+        Output
+        ------
+        None
+        """
+        # Update topology-related quantities
+        self._compute_distance_2d_3d_and_angles()
+        self._sample_indoor_distance()
+        self._sample_los()
+
+        # Compute the LSPs means and stds
+        self._compute_lsp_log_mean_std()
+
+        # Compute the basic path-loss
+        self._compute_pathloss_basic()
 
     def spatial_correlation_matrix(self, correlation_distance):
         r"""Computes and returns a 2D spatial exponential correlation matrix
@@ -558,6 +598,12 @@ class SystemLevelScenario(Object):
         r"""O2I model used for pathloss computation of indoor UTs. Either "low"
         or "high" or "50/50". See section 7.4.3 or TR 38.901."""
         return self._o2i_model
+    
+    @property
+    def o2i_car_model(self):
+        r"""O2I car model used for pathloss computation of outdoor UTs.
+        Either "non-metalic" or `None`. See section 7.4.3.2 or TR 38.901."""
+        return self._o2i_car_model
 
     @abstractmethod
     def clip_carrier_frequency_lsp(self, fc):
@@ -750,11 +796,20 @@ class SystemLevelScenario(Object):
             tf.constant(0.0, self.rdtype))
 
         # Sample the indoor 2D distances for each BS-UT link
-        self._distance_2d_in = config.tf_rng.uniform(
+        # Sample 2 independent random variables
+        distance_2d_in_1 = config.tf_rng.uniform(
             shape=[self.batch_size, self.num_bs, self.num_ut],
             minval=self.min_2d_in,
             maxval=self.max_2d_in,
-            dtype=self.rdtype) * indoor_mask
+            dtype=self.rdtype)
+        distance_2d_in_2 = config.tf_rng.uniform(
+            shape=[self.batch_size, self.num_bs, self.num_ut],
+            minval=self.min_2d_in,
+            maxval=self.max_2d_in,
+            dtype=self.rdtype)
+        # Compute the min of 2 independent random variables
+        self._distance_2d_in = tf.minimum(distance_2d_in_1, distance_2d_in_2) * \
+            indoor_mask
         # Compute the outdoor 2D distances
         self._distance_2d_out = self.distance_2d - self._distance_2d_in
         # Compute the indoor 3D distances

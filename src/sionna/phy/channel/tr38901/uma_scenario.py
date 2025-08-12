@@ -8,6 +8,7 @@ import tensorflow as tf
 from sionna.phy import SPEED_OF_LIGHT, config
 from sionna.phy.utils import log10
 from . import SystemLevelScenario
+from . import ScenarioCalibrationParameters
 
 class UMaScenario(SystemLevelScenario):
     r"""
@@ -42,6 +43,19 @@ class UMaScenario(SystemLevelScenario):
         If set to `None`,
         :attr:`~sionna.phy.config.Config.precision` is used.
     """
+    def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
+        direction, enable_pathloss=True, enable_shadow_fading=True,
+        release_number="19", precision=None):
+
+        assert carrier_frequency > 0.5e9 and carrier_frequency < 100e9, \
+            "UMa scenario is only defined for carrier frequencies > 0.5 GHz and < 100 GHz"
+        
+        assert o2i_model in ('low', 'high', '50/50'), \
+            "o2i_model must be 'low', 'high', or '50/50'"
+
+        super().__init__(carrier_frequency, o2i_model, ut_array, bs_array,
+            direction, None, enable_pathloss, enable_shadow_fading, release_number,
+            precision)
 
     #########################################
     # Public methods and properties
@@ -108,8 +122,15 @@ class UMaScenario(SystemLevelScenario):
     def s_trp_parameters(self):
         r"""Tuple containing the parameters for the Near-Field (NF) S_TRP model
         
-        (K1, Alpha, Beta)"""
-
+        (K1, Alpha, Beta)
+        
+        K1 : `int`
+            K1 parameter
+        Alpha : `tf.float`
+            Alpha parameter
+        Beta : `tf.float`
+            Beta parameter
+        """
         return (2,
                 tf.constant(1.93, self.rdtype),
                 tf.constant(1.33, self.rdtype))
@@ -171,13 +192,14 @@ class UMaScenario(SystemLevelScenario):
         # ZSD
         log_mean_zsd_los = tf.math.maximum(tf.constant(-0.5,
                                                     self.rdtype),
-            -2.1*(distance_2d/1000.0) - 0.01*tf.abs(h_ut-1.5)+0.75)
+            -2.1*(distance_2d/1000.0) - 0.01*(h_ut-1.5)+0.75)
         log_mean_zsd_nlos = tf.math.maximum(tf.constant(-0.5,
                                                     self.rdtype),
-            -2.1*(distance_2d/1000.0) - 0.01*tf.abs(h_ut-1.5)+0.9)
+            -2.1*(distance_2d/1000.0) - 0.01*(h_ut-1.5)+0.9)
         log_mean_zsd = tf.where(self.los, log_mean_zsd_los, log_mean_zsd_nlos)
         # Excess delay for absolute time of arrival (ToA) estimation
         log_mean_ed_nlos = tf.constant(-7.4, self.rdtype)
+        # A very small value for LoS case
         log_mean_ed_los = tf.constant(-30.0, self.rdtype)
         log_mean_ed = tf.where(self.los, log_mean_ed_los, log_mean_ed_nlos)
 
@@ -208,7 +230,7 @@ class UMaScenario(SystemLevelScenario):
         log_std_zsd = self.get_param("sigmaZSD")
         # Excess delay for absolute time of arrival (ToA) estimation
         log_std_ed_nlos = tf.constant(0.2, self.rdtype)
-        log_std_ed_los = tf.constant(0.01, self.rdtype)
+        log_std_ed_los = tf.constant(0., self.rdtype)
         log_std_ed = tf.where(self.los, log_std_ed_los, log_std_ed_nlos)
 
         lsp_log_std = tf.stack([log_std_ds,
@@ -307,3 +329,44 @@ class UMaScenario(SystemLevelScenario):
         pl_b = tf.where(self.los, pl_los, pl_nlos)
 
         self._pl_b = pl_b
+
+    def get_calibration_parameters(self, nearfield=False):
+        r"""Returns the calibration parameters for the UMa scenario
+
+        Input
+        -----
+        nearfield : `bool`, (default `False`)
+            If `True`, returns the calibration parameters for the near-field
+            regime. Otherwise, returns the calibration parameters for the far-field
+            regime.
+
+        Output
+        -------
+        : `dict`
+            Dictionary containing the calibration parameters
+        """
+        if nearfield:
+            parameters = ScenarioCalibrationParameters(
+                min_bs_ut_dist = tf.constant(35., self.rdtype),
+                isd = tf.constant(500., self.rdtype),
+                bs_height = tf.constant(25., self.rdtype),
+                min_ut_height = tf.constant(1.5, self.rdtype),
+                max_ut_height = tf.constant(1.5, self.rdtype),
+                indoor_probability = tf.constant(0.8, self.rdtype),
+                min_ut_velocity = tf.constant(3./3.6, self.rdtype),
+                max_ut_velocity = tf.constant(3./3.6, self.rdtype),
+            )
+        else:
+            parameters = ScenarioCalibrationParameters(
+                min_bs_ut_dist = tf.constant(35., self.rdtype),
+                isd = tf.constant(500., self.rdtype),
+                bs_height = tf.constant(25., self.rdtype),
+                min_ut_height = tf.constant(1.5, self.rdtype),
+                max_ut_height = tf.constant(1.5, self.rdtype),
+                indoor_probability = tf.constant(0.8, self.rdtype),
+                min_ut_velocity = tf.constant(3./3.6, self.rdtype),
+                max_ut_velocity = tf.constant(3./3.6, self.rdtype),
+            )
+        return parameters
+    
+
