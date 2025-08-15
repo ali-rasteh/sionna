@@ -95,6 +95,9 @@ class SMa(SystemLevelChannel):
         new generation of channel impulse responses. Otherwise, always reuse
         the same LSPs, except if the topology is changed.
 
+    near_field : `bool`, (default `False`)
+        If `True`, use near-field approximation for the antenna arrays.
+
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
         If set to `None`,
@@ -118,11 +121,11 @@ class SMa(SystemLevelChannel):
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
         direction, o2i_car_model=None, enable_pathloss=True, enable_shadow_fading=True,
-        always_generate_lsp=False, precision=None):
+        always_generate_lsp=False, vegetation=None, calibration_mode=False, near_field=False, precision=None):
 
         # SMa scenario
         scenario = SMaScenario(carrier_frequency, o2i_model, ut_array, bs_array,
                                direction, o2i_car_model, enable_pathloss, 
-                               enable_shadow_fading, precision=precision)
+                               enable_shadow_fading, vegetation, calibration_mode, precision=precision)
 
-        super().__init__(scenario, always_generate_lsp)
+        super().__init__(scenario, always_generate_lsp, near_field)

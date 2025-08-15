@@ -90,6 +90,9 @@ class RMa(SystemLevelChannel):
         new generation of channel impulse responses. Otherwise, always reuse
         the same LSPs, except if the topology is changed. 
 
+    near_field : `bool`, (default `False`)
+        If `True`, use near-field approximation for the antenna arrays.
+
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
         If set to `None`,
@@ -114,11 +117,11 @@ class RMa(SystemLevelChannel):
     def __init__(self, carrier_frequency, ut_array, bs_array,
         direction, enable_pathloss=True, enable_shadow_fading=True,
         average_street_width=20.0, average_building_height=5.0,
-        always_generate_lsp=False, precision=None):
+        always_generate_lsp=False, near_field=False, precision=None):
 
         # RMa scenario
         scenario = RMaScenario(carrier_frequency, ut_array, bs_array,
             direction, enable_pathloss, enable_shadow_fading,
             average_street_width, average_building_height, precision=precision)
 
-        super().__init__(scenario, always_generate_lsp, precision=precision)
+        super().__init__(scenario, always_generate_lsp, near_field, precision=precision)

@@ -2241,12 +2241,11 @@ def gen_indoorgrid_topology(batch_size,
     # ----------------#
     bs_yaw = tf.zeros([batch_size, num_cells*1, 1], rdtype)
 
-    # TODO check: this could be a bug
     # BSs are downtilted towards the sector center
     if downtilt_to_sector_center:
-        bs_downtilt = tf.constant(PI, rdtype)
+        bs_downtilt = tf.constant(0.5*PI, rdtype)
     else:
-        bs_downtilt = tf.cast(0.5*PI, rdtype)
+        bs_downtilt = tf.cast(0.0, rdtype)
 
     # [batch_size, num_cells*1, 1]
     bs_pitch = tf.fill([batch_size, num_cells*1, 1], bs_downtilt)

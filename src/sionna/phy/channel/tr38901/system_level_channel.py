@@ -52,6 +52,7 @@ class SystemLevelChannel(ChannelModel):
     def __init__(self,
                  scenario,
                  always_generate_lsp=False,
+                 near_field=False,
                  precision=None):
 
         super().__init__(precision=scenario.precision)
@@ -72,6 +73,7 @@ class SystemLevelChannel(ChannelModel):
             scenario.carrier_frequency,
             tx_array, rx_array,
             subclustering=True,
+            near_field=near_field,
             precision=self.precision)
 
         # Are new LSPs needed
@@ -212,10 +214,12 @@ class SystemLevelChannel(ChannelModel):
             moving_end = 'rx'
             tx_orientations = self._scenario.bs_orientations
             rx_orientations = self._scenario.ut_orientations
+            tx_rx_vectors = self._scenario.bs_ut_vectors
         else : # 'uplink'
             moving_end = 'tx'
             tx_orientations = self._scenario.ut_orientations
             rx_orientations = self._scenario.bs_orientations
+            tx_rx_vectors = -self._scenario.bs_ut_vectors
         topology = Topology(velocities=self._scenario.ut_velocities,
                             moving_end=moving_end,
                             los_aoa=deg_2_rad(self._scenario.los_aoa),
@@ -225,7 +229,8 @@ class SystemLevelChannel(ChannelModel):
                             los=self._scenario.los,
                             distance_3d=self._scenario.distance_3d,
                             tx_orientations=tx_orientations,
-                            rx_orientations=rx_orientations)
+                            rx_orientations=rx_orientations,
+                            tx_rx_vectors=tx_rx_vectors)
 
         # The channel coefficient needs the cluster delay spread parameter in ns
         c_ds = self._scenario.get_param("cDS")*1e-9

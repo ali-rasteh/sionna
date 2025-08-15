@@ -51,6 +51,9 @@ class Topology(Object):
     rx_orientations : [batch size, number of RXs, 3], `tf.float`
         Orientations of the receivers, which are either BSs or UTs depending on
         the link direction [radian]
+
+    tx_rx_vectors : [batch size, number of TXs, number of RXs, 3], `tf.float`
+        Vectors from TX to RX
     """
     def __init__(self,  velocities,
                         moving_end,
@@ -61,7 +64,8 @@ class Topology(Object):
                         los,
                         distance_3d,
                         tx_orientations,
-                        rx_orientations):
+                        rx_orientations,
+                        tx_rx_vectors=None):
         self.velocities = velocities
         self.moving_end = moving_end
         self.los_aoa = los_aoa
@@ -72,6 +76,7 @@ class Topology(Object):
         self.tx_orientations = tx_orientations
         self.rx_orientations = rx_orientations
         self.distance_3d = distance_3d
+        self.tx_rx_vectors = tx_rx_vectors
         super().__init__()
 
 
@@ -100,6 +105,9 @@ class ChannelCoefficientsGenerator(Object):
         Use subclustering if set to `True` (see step 11 for section 7.5 in
         TR 38.901). CDL does not use subclustering. System level models (UMa,
         UMi, RMa) do.
+
+    near_field : `bool`, (default `False`)
+        If `True`, use near-field approximation for the antenna arrays.
 
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
@@ -153,6 +161,7 @@ class ChannelCoefficientsGenerator(Object):
     def __init__(self,  carrier_frequency,
                         tx_array, rx_array,
                         subclustering,
+                        near_field=False,
                         precision=None):
         super().__init__(precision=precision)
 
@@ -162,6 +171,7 @@ class ChannelCoefficientsGenerator(Object):
         self._tx_array = tx_array
         self._rx_array = rx_array
         self._subclustering = subclustering
+        self._near_field = near_field
 
         # Sub-cluster information for intra cluster delay spread clusters
         # This is hardcoded from Table 7.5-5
@@ -611,6 +621,12 @@ class ChannelCoefficientsGenerator(Object):
         """
 
         lambda_0 = self._lambda_0
+        num_clusters = tf.shape(aoa)[-2]
+        num_rays = tf.shape(aoa)[-1]
+        is_los = (num_clusters == 1) and (num_rays == 1)
+        is_nlos = not is_los
+        is_near_field = self._near_field
+        is_far_field = not is_near_field
 
         r_hat_rx = self._unit_sphere_vector(zoa, aoa)
         r_hat_rx = tf.squeeze(r_hat_rx, axis=r_hat_rx.shape.rank-1)
@@ -643,37 +659,55 @@ class ChannelCoefficientsGenerator(Object):
 
         # Compute all tensor elements
 
-        # As broadcasting of such high-rank tensors is not fully supported
-        # in all cases, we need to do a hack here by explicitly
-        # broadcasting one dimension:
-        s = tf.shape(d_bar_rx)
-        shape = tf.concat([ [s[0]], [tf.shape(r_hat_rx)[1]], s[2:]], 0)
-        d_bar_rx = tf.broadcast_to(d_bar_rx, shape)
-        exp_rx = 2*PI/lambda_0*tf.reduce_sum(r_hat_rx*d_bar_rx,
-            axis=-1, keepdims=True)
-        exp_rx = tf.exp(tf.complex(tf.constant(0.,
-                                    self.rdtype), exp_rx))
-
-        near_field = (d1 is not None)
-        if near_field:
-            print("Using near-field approximation for the TX antenna array")
-            d1 = tf.reshape(d1, tf.concat([tf.shape(d1), [1, 1]], axis=0))
-            dist = tf.sqrt(tf.reduce_sum(tf.square(d1 * r_hat_tx - d_bar_tx), axis=-1))
-            d1 = tf.reshape(d1, d1.shape[:-1])
-            exp_tx = 2*PI/lambda_0*(d1 - dist)
-        else:
+        if is_far_field:
             # The hack is for some reason not needed for this term
             # exp_tx = 2*PI/lambda_0*tf.reduce_sum(r_hat_tx*d_bar_tx,
             #     axis=-1, keepdims=True)
             exp_tx = 2*PI/lambda_0*tf.reduce_sum(r_hat_tx*d_bar_tx,
                 axis=-1)
+        elif is_near_field and is_nlos:
+            d1 = tf.reshape(d1, tf.concat([tf.shape(d1), [1, 1]], axis=0))
+            dist = tf.sqrt(tf.reduce_sum(tf.square(d1 * r_hat_tx - d_bar_tx), axis=-1))
+            d1 = tf.reshape(d1, d1.shape[:-1])
+            exp_tx = 2*PI/lambda_0*(d1 - dist)
+
+        if is_far_field or is_nlos:
+            # As broadcasting of such high-rank tensors is not fully supported
+            # in all cases, we need to do a hack here by explicitly
+            # broadcasting one dimension:
+            s = tf.shape(d_bar_rx)
+            shape = tf.concat([ [s[0]], [tf.shape(r_hat_rx)[1]], s[2:]], 0)
+            d_bar_rx = tf.broadcast_to(d_bar_rx, shape)
+            exp_rx = 2*PI/lambda_0*tf.reduce_sum(r_hat_rx*d_bar_rx,
+                axis=-1, keepdims=True)
+            exp_rx = tf.exp(tf.complex(tf.constant(0.,
+                                        self.rdtype), exp_rx))
             
-        exp_tx = tf.exp(tf.complex(tf.constant(0.,
-                                    self.rdtype), exp_tx))
-        exp_tx = tf.expand_dims(exp_tx, -2)
+            exp_tx = tf.exp(tf.complex(tf.constant(0.,
+                                        self.rdtype), exp_tx))
+            exp_tx = tf.expand_dims(exp_tx, -2)
 
-        h_array = exp_rx*exp_tx
+            h_array = exp_rx*exp_tx
+        else:
+            tx_rx_vectors = topology.tx_rx_vectors
+            d_bar_tx = tf.expand_dims(d_bar_tx, -3)
+            d_bar_rx = tf.expand_dims(d_bar_rx, -2)
 
+            s = tf.shape(tx_rx_vectors)
+            shape = tf.concat([s[:3], [1,1,1,1], s[3:]], 0)
+            tx_rx_vectors = tf.reshape(tx_rx_vectors, shape)
+
+            r_vector = -d_bar_tx + tx_rx_vectors + d_bar_rx
+            d_3d = topology.distance_3d
+            r_vector_mag = tf.sqrt(tf.reduce_sum(tf.square(r_vector), axis=-1))
+
+            s = tf.shape(d_3d)
+            shape = tf.concat([s, [1,1,1,1]], 0)
+            d_3d = tf.reshape(d_3d, shape)
+
+            h_array = tf.exp(tf.complex(tf.constant(0., self.rdtype),
+                -2*PI/lambda_0*(r_vector_mag-d_3d)))
+            
         return h_array
 
     def _step_11_field_matrix(self, topology, aoa, aod, zoa, zod, h_phase):
@@ -765,7 +799,6 @@ class ChannelCoefficientsGenerator(Object):
             d1 distance in the equation 7.6-47
         """
 
-        # TODO Check if it refers to the 3D distance between reference point at TRP and UT side
         d3d = topology.distance_3d
         speed_of_light = tf.constant(SPEED_OF_LIGHT, self.rdtype)
         s_trp = rays.s_trp
@@ -833,8 +866,10 @@ class ChannelCoefficientsGenerator(Object):
         h_phase = self._step_11_phase_matrix(phi, rays)
         h_field = self._step_11_field_matrix(topology, rays.aoa, rays.aod,
                                                     rays.zoa, rays.zod, h_phase)
-        # d1 = self._step_11_d1(topology, rays, c_ds, ed)
-        d1 = None
+        if self._near_field:
+            d1 = self._step_11_d1(topology, rays, c_ds, ed)
+        else:
+            d1 = None
         h_array = self._step_11_array_offsets(topology, rays.aoa, rays.aod,
                                                             rays.zoa, rays.zod, d1)
         h_doppler = self._step_11_doppler_matrix(topology, rays.aoa, rays.zoa,
@@ -987,7 +1022,7 @@ class ChannelCoefficientsGenerator(Object):
         d3d = topology.distance_3d
         lambda_0 = self._lambda_0
         h_delay = tf.exp(tf.complex(tf.constant(0.,
-                        self.rdtype), 2*PI*d3d/lambda_0))
+                        self.rdtype), -2*PI*d3d/lambda_0))
 
         # Combining all to compute channel coefficient
         h_field = tf.expand_dims(tf.squeeze(h_field, axis=4), axis=-1)

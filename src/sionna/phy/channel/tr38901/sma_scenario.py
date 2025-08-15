@@ -49,7 +49,7 @@ class SMaScenario(SystemLevelScenario):
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
         direction, o2i_car_model=None, enable_pathloss=True, enable_shadow_fading=True,
-        vegetation=None, precision=None):
+        vegetation=None, calibration_mode=False, precision=None):
 
         assert carrier_frequency > 0.5e9 and carrier_frequency < 37e9, \
             "SMa scenario is only defined for carrier frequencies > 0.5 GHz and < 37 GHz"
@@ -60,7 +60,7 @@ class SMaScenario(SystemLevelScenario):
         # SMa is only defined for release 19
         super().__init__(carrier_frequency, o2i_model, ut_array, bs_array,
             direction, o2i_car_model, enable_pathloss, enable_shadow_fading,
-            release_number="19", precision = precision)
+            release_number="19", calibration_mode=calibration_mode, precision = precision)
 
         assert (vegetation is None) or (vegetation in ["no", "sparse", "dense"]), \
             "vegetation must be None, 'no', 'sparse' or 'dense'."
@@ -192,13 +192,6 @@ class SMaScenario(SystemLevelScenario):
     def o2i_parameter_filepath(self):
         r""" Path of the configuration file for indoor scenario"""
         return 'SMa_O2I_rel19.json'
-
-    # @property
-    # def residential(self):
-    #     r"""
-    #     Residential state of UTs. `True` is residential, `False` is commercial.
-    #     [batch size, number of UTs]"""
-    #     return self._residential_state
 
     #########################
     # Utility methods
@@ -382,81 +375,3 @@ class SMaScenario(SystemLevelScenario):
                 residential_probability = tf.constant(0.9, self.rdtype)
             )
         return parameters
-    
-    # def set_topology(self,
-    #                  ut_loc=None,
-    #                  bs_loc=None,
-    #                  ut_orientations=None,
-    #                  bs_orientations=None,
-    #                  ut_velocities=None,
-    #                  in_state=None,
-    #                  los=None,
-    #                  bs_virtual_loc=None,
-    #                  residential_state=None):
-    #     # pylint: disable=line-too-long
-    #     r"""
-    #     Set the network topology.
-
-    #     It is possible to set up a different network topology for each batch
-    #     example.
-
-    #     When calling this function, not specifying a parameter leads to the
-    #     reuse of the previously given value. Not specifying a value that was not
-    #     set at a former call rises an error.
-
-    #     Input
-    #     ------
-    #     ut_loc : `None` (default) | [batch size, number of UTs, 3], `tf.float`
-    #         Locations of the UTs [m]
-
-    #     bs_loc : `None` (default) | [batch size, number of BSs, 3], `tf.float`
-    #         Locations of BSs [m]
-
-    #     ut_orientations : `None` (default) | [batch size, number of UTs, 3], `tf.float`
-    #         Orientations of the UTs arrays [radian]
-
-    #     bs_orientations : `None` (default) | [batch size, number of BSs, 3], `tf.float`
-    #         Orientations of the BSs arrays [radian]
-
-    #     ut_velocities : `None` (default) | [batch size, number of UTs, 3], `tf.float`
-    #         Velocity vectors of UTs [m/s]
-
-    #     in_state : `None` (default) | [batch size, number of UTs], `tf.bool`
-    #         Indoor/outdoor state of UTs. `True` means indoor and `False`
-    #         means outdoor.
-
-    #     los : `None` (default) | `tf.bool`
-    #         If not `None`, all UTs located outdoor are
-    #         forced to be in LoS if ``los`` is set to `True`, or in NLoS
-    #         if it is set to `False`. If set to `None`, the LoS/NLoS states
-    #         of UTs is set following 3GPP specification
-    #         (Section 7.4.2 of TR 38.901).
-        
-    #     bs_virtual_loc : `None` (default) | [batch size, number of BSs, number of UTs, 3], `tf.float`
-    #         Virtual locations of BSs for each UT [m]. 
-    #         Used to compute BS-UT relative distance and angles.
-    #         If `None` while ``bs_loc`` is specified, then it is set to
-    #         ``bs_loc`` upon reshaping. If neither ``bs_virtual_loc`` nor
-    #         ``bs_loc`` are specified, then the previous value is used. 
-
-    #     residential_state : `None` (default) | [batch size, number of UTs], `tf.bool`
-    #         Residential state of UTs. `True` means residential and `False`
-    #         means commercial.
-    #     """
-
-    #     need_for_update = super().set_topology(ut_loc, bs_loc, ut_orientations,
-    #                          bs_orientations, ut_velocities, in_state,
-    #                          los, bs_virtual_loc)
-    #     # TODO
-    #     assert (residential_state is not None) or (self._residential_state is not None),\
-    #         "`residential_state` is None and was not previously set"
-        
-    #     if residential_state is not None:
-    #         self._residential_state = residential_state
-    #         need_for_update = True
-
-    #     if need_for_update:
-    #         self.topology_updated_callback()
-
-    #     return need_for_update
-

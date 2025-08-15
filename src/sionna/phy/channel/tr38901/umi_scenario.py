@@ -45,7 +45,7 @@ class UMiScenario(SystemLevelScenario):
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
         direction, enable_pathloss=True, enable_shadow_fading=True,
-        release_number="19", precision=None):
+        release_number="19", calibration_mode=False, precision=None):
 
         assert carrier_frequency > 0.5e9 and carrier_frequency < 100e9, \
             "UMi scenario is only defined for carrier frequencies > 0.5 GHz and < 100 GHz"
@@ -53,8 +53,8 @@ class UMiScenario(SystemLevelScenario):
             "o2i_model must be 'low', 'high', or '50/50'"
 
         super().__init__(carrier_frequency, o2i_model, ut_array, bs_array,
-            direction, None, enable_pathloss, enable_shadow_fading, release_number,
-            precision)
+            direction, None, enable_pathloss, enable_shadow_fading, release_number, 
+            calibration_mode, precision)
 
     #########################################
     # Public methods and properties

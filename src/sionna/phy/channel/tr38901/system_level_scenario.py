@@ -61,7 +61,8 @@ class SystemLevelScenario(Object):
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
         direction, o2i_car_model=None, enable_pathloss=True, \
-        enable_shadow_fading=True, release_number="19", precision=None):
+        enable_shadow_fading=True, release_number="19", \
+        calibration_mode=False, precision=None):
         super().__init__(precision=precision)
 
         # Carrier frequency (Hz)
@@ -96,6 +97,7 @@ class SystemLevelScenario(Object):
         self._enable_pathloss = enable_pathloss
         self._enable_shadow_fading = enable_shadow_fading
         self._release_number = release_number
+        self._calibration_mode = calibration_mode
 
         # Scenario
         self._ut_loc = None
@@ -135,6 +137,11 @@ class SystemLevelScenario(Object):
     def release_number(self):
         r"""Release number of the 3GPP specification used for this scenario."""
         return self._release_number
+
+    @property
+    def calibration_mode(self):
+        r"""`True` is calibration mode is enabled. `False` otherwise."""
+        return self._calibration_mode
 
     @property
     def lambda_0(self):
@@ -284,6 +291,14 @@ class SystemLevelScenario(Object):
         r"""Distance between all pairs of UTs in the X-Y plan [m].
         [batch size, number of UTs, number of UTs]"""
         return self._matrix_ut_distance_2d
+
+    @property
+    def bs_ut_vectors(self):
+        r"""Vector from each BS to each UT [m].
+        [batch size, number of BSs, number of UTs, 3]"""
+        ut_loc = tf.expand_dims(self._ut_loc, axis=1)
+        bs_virtual_loc = self._bs_virtual_loc
+        return ut_loc - bs_virtual_loc
 
     @property
     def los_aod(self):

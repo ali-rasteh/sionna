@@ -106,7 +106,7 @@ class LSPGenerator(Object):
         ## O2I penetration
         if self._scenario.o2i_model == 'low':
             pl_o2i = self._o2i_low_loss()
-        elif self._scenario.o2i_model == 'high': # 'high'
+        elif self._scenario.o2i_model == 'high':
             pl_o2i = self._o2i_high_loss()
         elif self._scenario.o2i_model == 'low-A':
             pl_o2i = self._o2i_low_loss_A()
@@ -159,13 +159,24 @@ class LSPGenerator(Object):
         # spread values to 104 degrees
         # Limit the RMS zenith arrival (ZSA) and zenith departure (ZSD)
         # spread values to 52 degrees
+        if not self._scenario.calibration_mode:
+            asd=tf.math.minimum(lsp[:, :, :, 1], 104.0)
+            asa=tf.math.minimum(lsp[:, :, :, 2], 104.0)
+            zsa=tf.math.minimum(lsp[:, :, :, 5], 52.0)
+            zsd=tf.math.minimum(lsp[:, :, :, 6], 52.0)
+        else:
+            asd=lsp[:, :, :, 1]
+            asa=lsp[:, :, :, 2]
+            zsa=lsp[:, :, :, 5]
+            zsd=lsp[:, :, :, 6]
+
         lsp = LSP(ds=lsp[:, :, :, 0],
-                  asd=tf.math.minimum(lsp[:, :, :, 1], 104.0),
-                  asa=tf.math.minimum(lsp[:, :, :, 2], 104.0),
+                  asd=asd,
+                  asa=asa,
                   sf=lsp[:, :, :, 3],
                   k_factor=lsp[:, :, :, 4],
-                  zsa=tf.math.minimum(lsp[:, :, :, 5], 52.0),
-                  zsd=tf.math.minimum(lsp[:, :, :, 6], 52.0),
+                  zsa=zsa,
+                  zsd=zsd,
                   ed=lsp[:, :, :, 7]
                   )
 
@@ -486,9 +497,10 @@ class LSPGenerator(Object):
 
         # Material penetration losses
         # fc must be in GHz
-        # l_irrglass = 23. + 0.3*fc
-        # TODO Release 19
-        l_irrglass = 25.4 + 0.11*fc
+        if self._scenario.release_number == "18":
+            l_irrglass = 23. + 0.3*fc
+        else:
+            l_irrglass = 25.4 + 0.11*fc
         l_concrete = 5. + 4.*fc
 
         # Path loss through external wall
@@ -583,30 +595,20 @@ class LSPGenerator(Object):
             tf.zeros([batch_size, num_ut], self.rdtype))
         indoor_mask = tf.expand_dims(indoor_mask, axis=1)
 
-        # Find indices where indoor_mask == 1
         indoor_indices = tf.where(tf.equal(indoor_mask, 1.0))
         indoor_indices = tf.cast(indoor_indices, dtype=tf.int32)
-
-        # Shuffle indices
         shuffled_indices = tf.random.shuffle(indoor_indices)
-
-        # Split into two groups: 50/50
         num_indoor = tf.shape(shuffled_indices)[0]
         half = num_indoor // 2
-
+        # Split into two groups: 50/50
         indices_1 = shuffled_indices[:half]
-        indices_2 = shuffled_indices[half:]
-
         updates_1 = tf.ones([tf.shape(indices_1)[0]], dtype=indoor_mask.dtype)
-        updates_2 = tf.ones([tf.shape(indices_2)[0]], dtype=indoor_mask.dtype)
-
-        # Create two masks of the same shape as indoor_mask
+        # Create a mask with the same shape as indoor_mask
         mask_1 = tf.scatter_nd(indices_1, updates_1, tf.shape(indoor_mask))
-        low_loss = self._o2i_low_loss()
-        high_loss = self._o2i_high_loss()
 
         # Combine the two masks with the corresponding pathlosses
-        # pl_50_50 = tf.where(mask_1, low_loss, high_loss)
+        low_loss = self._o2i_low_loss()
+        high_loss = self._o2i_high_loss()
         pl_50_50 = tf.where(tf.equal(mask_1, 1.0), low_loss, high_loss)
 
         return pl_50_50

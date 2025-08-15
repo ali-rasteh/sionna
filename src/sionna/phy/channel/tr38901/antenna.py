@@ -53,8 +53,10 @@ class AntennaElement(Object):
             self._radiation_pattern = self._radiation_pattern_38901
             self._polarization_model = self._polarization_model_38901_2
         elif pattern == "38.901-ut":
+            # TODO
             self._radiation_pattern = self._radiation_pattern_38901_ut
-            self._polarization_model = self._polarization_model_38901_1
+            # self._polarization_model = self._polarization_model_38901_1
+            self._polarization_model = self._polarization_model_38901_2
 
     def field(self, theta, phi):
         """
@@ -976,12 +978,12 @@ class UtArray(Object):
             candidate_locations_pos[0,:] = [0.0,    -0.1,   0.1 ]
             candidate_locations_pos[1,:] = [0.0,    -0.1,   0.0 ]
             candidate_locations_pos[2,:] = [0.0,    -0.1,   -0.1]
-            candidate_locations_pos[3,:] = [0.0,    0.0,    0.1 ]
-            candidate_locations_pos[4,:] = [0.0,    0.0,    0.0 ]
-            candidate_locations_pos[5,:] = [0.0,    0.0,    -0.1]
+            candidate_locations_pos[3,:] = [0.0,    0.0,    -0.1]
+            candidate_locations_pos[4,:] = [0.0,    0.1,    -0.1]
+            candidate_locations_pos[5,:] = [0.0,    0.1,    0.0 ]
             candidate_locations_pos[6,:] = [0.0,    0.1,    0.1 ]
-            candidate_locations_pos[7,:] = [0.0,    0.1,    0.0 ]
-            candidate_locations_pos[8,:] = [0.0,    0.1,    -0.1]
+            candidate_locations_pos[7,:] = [0.0,    0.0,    0.1 ]
+            candidate_locations_pos[8,:] = [0.0,    0.0,    0.0 ]
 
         ant_pos = np.zeros([self._num_ant, 3])
         for i, loc in enumerate(location_indices):

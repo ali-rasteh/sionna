@@ -90,6 +90,9 @@ class UMa(SystemLevelChannel):
         new generation of channel impulse responses. Otherwise, always reuse
         the same LSPs, except if the topology is changed.
 
+    near_field : `bool`, (default `False`)
+        If `True`, use near-field approximation for the antenna arrays.
+
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
         If set to `None`,
@@ -113,11 +116,11 @@ class UMa(SystemLevelChannel):
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
         direction, enable_pathloss=True, enable_shadow_fading=True,
-        always_generate_lsp=False, release_number="19", precision=None):
+        always_generate_lsp=False, release_number="19", calibration_mode=False, near_field=False, precision=None):
 
         # RMa scenario
         scenario = UMaScenario(carrier_frequency, o2i_model, ut_array, bs_array,
-                               direction, enable_pathloss, enable_shadow_fading, release_number,
-                               precision=precision)
+                               direction, enable_pathloss, enable_shadow_fading, release_number, 
+                               calibration_mode, precision=precision)
 
-        super().__init__(scenario, always_generate_lsp)
+        super().__init__(scenario, always_generate_lsp, near_field)
