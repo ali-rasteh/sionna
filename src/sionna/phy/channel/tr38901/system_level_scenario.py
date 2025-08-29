@@ -412,9 +412,9 @@ class SystemLevelScenario(Object):
                      bs_orientations=None,
                      ut_velocities=None,
                      in_state=None,
-                     residential_state=None,
                      los=None,
-                     bs_virtual_loc=None):
+                     bs_virtual_loc=None,
+                     residential_state=None):
         # pylint: disable=line-too-long
         r"""
         Set the network topology.
@@ -447,10 +447,6 @@ class SystemLevelScenario(Object):
             Indoor/outdoor state of UTs. `True` means indoor and `False`
             means outdoor.
 
-        residential_state : `None` (default) | [batch size, number of UTs], `tf.bool`
-            Residential/commercial state of UTs. `True` means residential and
-            `False` means commercial.
-
         los : `None` (default) | `tf.bool`
             If not `None`, all UTs located outdoor are
             forced to be in LoS if ``los`` is set to `True`, or in NLoS
@@ -464,6 +460,10 @@ class SystemLevelScenario(Object):
             If `None` while ``bs_loc`` is specified, then it is set to
             ``bs_loc`` upon reshaping. If neither ``bs_virtual_loc`` nor
             ``bs_loc`` are specified, then the previous value is used. 
+
+        residential_state : `None` (default) | [batch size, number of UTs], `tf.bool`
+            Residential/commercial state of UTs. `True` means residential and
+            `False` means commercial.
         """
 
         assert (ut_loc is not None) or (self._ut_loc is not None),\

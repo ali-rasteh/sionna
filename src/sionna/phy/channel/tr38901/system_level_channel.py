@@ -100,9 +100,9 @@ class SystemLevelChannel(ChannelModel):
                      bs_orientations=None,
                      ut_velocities=None,
                      in_state=None,
-                     residential_state=None,
                      los=None,
-                     bs_virtual_loc=None):
+                     bs_virtual_loc=None,
+                     residential_state=None):
         r"""
         Set the network topology
 
@@ -135,10 +135,6 @@ class SystemLevelChannel(ChannelModel):
             Indoor/outdoor state of UTs. `True` means indoor and `False`
             means outdoor.
 
-        residential_state : `None` (default) | [batch size, num_ut], `tf.bool`
-            Residential/commercial state of UTs. `True` means residential and
-            `False` means commercial.
-
         los : `None` (default) | `tf.bool`
             If not `None`, all UTs located outdoor are
             forced to be in LoS if ``los`` is set to `True`, or in NLoS
@@ -150,6 +146,10 @@ class SystemLevelChannel(ChannelModel):
             Used to compute BS-UT relative distance and angles.
             If `None` while ``bs_loc`` is specified, then it is set to
             ``bs_loc`` upon reshaping.
+
+        residential_state : `None` (default) | [batch size, num_ut], `tf.bool`
+            Residential/commercial state of UTs. `True` means residential and
+            `False` means commercial.
         """
 
         # Update the scenario topology
@@ -159,9 +159,9 @@ class SystemLevelChannel(ChannelModel):
                                                       bs_orientations,
                                                       ut_velocities,
                                                       in_state,
-                                                      residential_state,
                                                       los,
-                                                      bs_virtual_loc)
+                                                      bs_virtual_loc,
+                                                      residential_state)
 
         if need_for_update:
             # Update the LSP sampler
