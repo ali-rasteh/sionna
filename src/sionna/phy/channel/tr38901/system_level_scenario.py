@@ -61,7 +61,7 @@ class SystemLevelScenario(Object):
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
         direction, o2i_car_model=None, enable_pathloss=True, \
-        enable_shadow_fading=True, release_number="19", \
+        enable_shadow_fading=True, release_number="18", \
         calibration_mode=False, precision=None):
         super().__init__(precision=precision)
 

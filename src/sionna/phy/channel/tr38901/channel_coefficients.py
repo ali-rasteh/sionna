@@ -76,7 +76,12 @@ class Topology(Object):
         self.tx_orientations = tx_orientations
         self.rx_orientations = rx_orientations
         self.distance_3d = distance_3d
-        self.tx_rx_vectors = tx_rx_vectors
+        if tx_rx_vectors is None:
+            self.tx_rx_vectors = tf.zeros_like(distance_3d)
+            self.tx_rx_vectors = tf.expand_dims(self.tx_rx_vectors, axis=-1)
+            self.tx_rx_vectors = tf.tile(self.tx_rx_vectors, [1, 1, 1, 3])
+        else:
+            self.tx_rx_vectors = tx_rx_vectors
         super().__init__()
 
 

@@ -27,9 +27,6 @@ class Rays(Object):
     powers : [batch size, number of BSs, number of UTs, number of clusters], `tf.float`
         Normalized path powers
 
-    s_trp : [batch size, number of BSs, number of UTs, number of clusters], `tf.float`
-        Scaling factors for near field channel modeling
-
     aoa : (batch size, number of BSs, number of UTs, number of clusters, number of rays], `tf.float`
         Azimuth angles of arrival [radian]
 
@@ -44,8 +41,11 @@ class Rays(Object):
 
     xpr [batch size, number of BSs, number of UTs, number of clusters, number of rays], `tf.float`
         Coss-polarization power ratios.
+
+    s_trp : [batch size, number of BSs, number of UTs, number of clusters], `tf.float`
+        Scaling factors for near field channel modeling
     """
-    def __init__(self, delays, s_trp, powers, aoa, aod, zoa, zod, xpr):
+    def __init__(self, delays, powers, aoa, aod, zoa, zod, xpr, s_trp=None):
         self.delays = delays
         self.powers = powers
         self.aoa = aoa
@@ -53,7 +53,10 @@ class Rays(Object):
         self.zoa = zoa
         self.zod = zod
         self.xpr = xpr
-        self.s_trp = s_trp
+        if s_trp is None:
+            self.s_trp = tf.ones_like(delays)
+        else:
+            self.s_trp = s_trp
         super().__init__()
 
 class RaysGenerator(Object):
@@ -151,13 +154,13 @@ class RaysGenerator(Object):
 
         # Storing and returning rays
         rays = Rays(delays = delays,
-                    s_trp  = s_trp,
                     powers = powers,
                     aoa    = aoa,
                     aod    = aod,
                     zoa    = zoa,
                     zod    = zod,
-                    xpr    = xpr)
+                    xpr    = xpr,
+                    s_trp  = s_trp)
 
         return rays
 
