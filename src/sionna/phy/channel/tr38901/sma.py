@@ -79,11 +79,6 @@ class SMa(SystemLevelChannel):
     direction : "uplink" | "downlink"
         Link direction
 
-    o2i_car_model : `None` (default) | "non-metalic"
-        Outdoor-to-indoor car loss model for UTs located outdoor.
-        Set this parameter to "non-matalic" to use the non-metalic-loss model.
-        See section 7.4.3 of [TR38901]_ for details.
-
     enable_pathloss : `bool`, (default `True`)
         If `True`, apply pathloss. Otherwise don't.
 
@@ -95,6 +90,11 @@ class SMa(SystemLevelChannel):
         new generation of channel impulse responses. Otherwise, always reuse
         the same LSPs, except if the topology is changed.
 
+    o2i_car_model : `None` (default) | "non-metalic"
+        Outdoor-to-indoor car loss model for UTs located outdoor.
+        Set this parameter to "non-matalic" to use the non-metalic-loss model.
+        See section 7.4.3 of [TR38901]_ for details.
+        
     near_field : `bool`, (default `False`)
         If `True`, use near-field approximation for the antenna arrays.
 
@@ -120,12 +120,14 @@ class SMa(SystemLevelChannel):
         Path delays [s]
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
-        direction, o2i_car_model=None, enable_pathloss=True, enable_shadow_fading=True,
-        always_generate_lsp=False, vegetation=None, calibration_mode=False, near_field=False, precision=None):
+        direction, enable_pathloss=True, enable_shadow_fading=True,
+        always_generate_lsp=False, o2i_car_model=None, vegetation=None,
+        calibration_mode=False, near_field=False, precision=None):
 
         # SMa scenario
         scenario = SMaScenario(carrier_frequency, o2i_model, ut_array, bs_array,
-                               direction, o2i_car_model, enable_pathloss, 
-                               enable_shadow_fading, vegetation, calibration_mode, precision=precision)
+                               direction, enable_pathloss, enable_shadow_fading, 
+                               o2i_car_model, vegetation, calibration_mode,
+                               precision=precision)
 
         super().__init__(scenario, always_generate_lsp, near_field)

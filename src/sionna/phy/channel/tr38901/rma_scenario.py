@@ -64,7 +64,7 @@ class RMaScenario(SystemLevelScenario):
         
         # Only the low-loss O2I model if available for RMa.
         super().__init__(carrier_frequency, 'low', ut_array, bs_array,
-            direction, None, enable_pathloss, enable_shadow_fading,
+            direction, enable_pathloss, enable_shadow_fading,
             precision=precision)
 
         # Average street width [m]

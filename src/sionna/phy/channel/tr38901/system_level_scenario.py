@@ -44,15 +44,15 @@ class SystemLevelScenario(Object):
     direction : "uplink" |"downlink"
         Link direction
 
-    o2i_car_model : `None` (default) | "non-metalic"
-        Outdoor to indoor (O2I) car pathloss model, used for outdoor UTs,
-        see section 7.4.3.2 from 38.901 specification.
-
     enable_pathloss : `bool`, (default `True`)
         If `True`, apply pathloss. Otherwise doesn't.
 
     enable_shadow_fading : `bool`, (default `True`)
         If `True`, apply shadow fading. Otherwise doesn't.
+
+    o2i_car_model : `None` (default) | "non-metalic"
+        Outdoor to indoor (O2I) car pathloss model, used for outdoor UTs,
+        see section 7.4.3.2 from 38.901 specification.
 
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
@@ -60,8 +60,8 @@ class SystemLevelScenario(Object):
         :attr:`~sionna.phy.config.Config.precision` is used.
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
-        direction, o2i_car_model=None, enable_pathloss=True, \
-        enable_shadow_fading=True, release_number="18", \
+        direction, enable_pathloss=True, enable_shadow_fading=True, \
+        o2i_car_model=None, release_number="18",
         calibration_mode=False, precision=None):
         super().__init__(precision=precision)
 

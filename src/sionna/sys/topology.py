@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from sionna.phy.utils import insert_dims, scalar_to_shaped_tensor, \
     flatten_dims, sample_bernoulli
 from sionna.phy import PI, config, dtypes, Block, Object
-from sionna.phy.channel.utils import random_ut_properties, deg_2_rad,\
+from sionna.phy.channel.utils import random_ut_properties,\
     set_3gpp_scenario_parameters
 
 

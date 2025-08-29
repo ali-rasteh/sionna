@@ -22,7 +22,6 @@ from .cir_dataset import CIRDataset
 from .constants import *
 from .utils import deg_2_rad, rad_2_deg, wrap_angle_0_360, drop_uts_in_sector,\
                    relocate_uts, set_3gpp_scenario_parameters,\
-                   set_3gpp_nearfield_scenario_parameters,\
                    gen_single_sector_topology,\
                    gen_single_sector_topology_interferers,\
                    subcarrier_frequencies, cir_to_ofdm_channel,\

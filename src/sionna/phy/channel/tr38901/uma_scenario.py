@@ -54,7 +54,7 @@ class UMaScenario(SystemLevelScenario):
             "o2i_model must be 'low', 'high', or '50/50'"
 
         super().__init__(carrier_frequency, o2i_model, ut_array, bs_array,
-            direction, None, enable_pathloss, enable_shadow_fading, release_number, 
+            direction, enable_pathloss, enable_shadow_fading, None, release_number, 
             calibration_mode, precision)
 
     #########################################

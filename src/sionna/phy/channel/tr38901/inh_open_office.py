@@ -124,7 +124,7 @@ class InHOpenOffice(SystemLevelChannel):
 
         # RMa scenario
         scenario = InHOpenOfficeScenario(carrier_frequency, o2i_model, ut_array, bs_array,
-                               direction, None, enable_pathloss, enable_shadow_fading,
+                               direction, enable_pathloss, enable_shadow_fading, None,
                                release_number, calibration_mode, precision)
 
         super().__init__(scenario, always_generate_lsp, near_field)

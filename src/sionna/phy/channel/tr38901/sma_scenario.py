@@ -32,15 +32,15 @@ class SMaScenario(SystemLevelScenario):
     direction : "uplink" |"downlink"
         Link direction
 
-    o2i_car_model : `None` (default) | "non-metalic"
-        Outdoor to indoor (O2I) car pathloss model, used for outdoor UTs,
-        see section 7.4.3 from 38.901 specification
-
     enable_pathloss : `bool`, (default `True`)
         If `True`, apply pathloss. Otherwise doesn't.
 
     enable_shadow_fading : `bool`, (default `True`)
         If `True`, apply shadow fading. Otherwise doesn't.
+
+    o2i_car_model : `None` (default) | "non-metalic"
+        Outdoor to indoor (O2I) car pathloss model, used for outdoor UTs,
+        see section 7.4.3 from 38.901 specification
 
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
@@ -48,8 +48,9 @@ class SMaScenario(SystemLevelScenario):
         :attr:`~sionna.phy.config.Config.precision` is used.
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
-        direction, o2i_car_model=None, enable_pathloss=True, enable_shadow_fading=True,
-        vegetation=None, calibration_mode=False, precision=None):
+        direction, enable_pathloss=True, enable_shadow_fading=True,
+        o2i_car_model=None, vegetation=None, calibration_mode=False,
+        precision=None):
 
         assert carrier_frequency > 0.5e9 and carrier_frequency < 37e9, \
             "SMa scenario is only defined for carrier frequencies > 0.5 GHz and < 37 GHz"
@@ -59,8 +60,9 @@ class SMaScenario(SystemLevelScenario):
 
         # SMa is only defined for release 19
         super().__init__(carrier_frequency, o2i_model, ut_array, bs_array,
-            direction, o2i_car_model, enable_pathloss, enable_shadow_fading,
-            release_number="19", calibration_mode=calibration_mode, precision = precision)
+            direction, enable_pathloss, enable_shadow_fading,
+            o2i_car_model, release_number="19", calibration_mode=calibration_mode,
+            precision = precision)
 
         assert (vegetation is None) or (vegetation in ["no", "sparse", "dense"]), \
             "vegetation must be None, 'no', 'sparse' or 'dense'."
