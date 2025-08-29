@@ -42,7 +42,7 @@ class LSP(Object):
     ed: [batch size, num tx, num rx], `tf.float`
         Excess delay in the absolute time of arrival [s]
     """
-    def __init__(self, ds, asd, asa, sf, k_factor, zsa, zsd, ed):
+    def __init__(self, ds, asd, asa, sf, k_factor, zsa, zsd, ed=None):
         self.ds = ds
         self.asd = asd
         self.asa = asa
@@ -499,7 +499,7 @@ class LSPGenerator(Object):
         # fc must be in GHz
         if self._scenario.release_number == "18":
             l_irrglass = 23. + 0.3*fc
-        else:
+        elif self._scenario.release_number == "19":
             l_irrglass = 25.4 + 0.11*fc
         l_concrete = 5. + 4.*fc
 
