@@ -811,7 +811,7 @@ def rma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w):
         Pathloss [dB]
     """
     pl3 = (161.04 - 7.1*np.log10(w) + 7.5*np.log10(h)
-           - (24.37-3.5*np.square(h/h_bs))*np.log10(h_bs)
+           - (24.37-3.7*np.square(h/h_bs))*np.log10(h_bs)
               +(43.42-3.1*np.log10(h_bs))*(np.log10(d_3d)-3)
               +20*np.log10(fc/1e9)-(3.2*np.square(np.log10(11.75*h_ut))-4.97))
     return np.maximum(rma_los_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w), pl3)
@@ -848,9 +848,10 @@ def rma_o2i_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w):
     : float
         Pathloss [dB]
     """
+    indoor_distance_mean = 10./3
     pltw = 5.0-10.0*np.log10(0.3*np.power(10.0, (-2.-0.2*fc/1e9)/10.0)\
         +0.7*np.power(10.0, (-5.-4.*fc/1e9)/10.0))
-    return rma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w) + pltw + 0.5*5.0
+    return rma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w) + pltw + 0.5*indoor_distance_mean
 
 def umi_los_pathloss(d_2d, d_3d, fc, h_bs, h_ut):
     r"""
@@ -944,14 +945,15 @@ def umi_o2i_pathloss(d_2d, d_3d, fc, h_bs, h_ut, o2i_model):
     : float
         Pathloss [dB]
     """
+    indoor_distance_mean = 25./3
     if o2i_model == 'low':
         pltw = 5.0-10.0*np.log10(0.3*np.power(10.0, (-2.-0.2*fc/1e9)/10.0)\
             + 0.7*np.power(10.0, (-5.-4.*fc/1e9)/10.0))
-        return umi_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut) + pltw + 0.5*12.5
+        return umi_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut) + pltw + 0.5*indoor_distance_mean
     else:
         pltw = 5.0-10.0*np.log10(0.7*np.power(10.0, (-23.-0.3*fc/1e9)/10.0)\
             + 0.3*np.power(10.0, (-5.-4.*fc/1e9)/10.0))
-        return umi_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut) + pltw + 0.5*12.5
+        return umi_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut) + pltw + 0.5*indoor_distance_mean
 
 def uma_los_pathloss(d_2d, d_3d, fc, h_bs, h_ut):
     r"""
@@ -1048,14 +1050,15 @@ def uma_o2i_pathloss(d_2d, d_3d, fc, h_bs, h_ut, o2i_model):
     : float
         Pathloss [dB]
     """
+    indoor_distance_mean = 25./3
     if o2i_model == 'low':
         pltw = 5.0-10.0*np.log10(0.3*np.power(10.0, (-2.-0.2*fc/1e9)/10.0)\
             + 0.7*np.power(10.0, (-5.-4.*fc/1e9)/10.0))
-        return uma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut) + pltw + 0.5*12.5
+        return uma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut) + pltw + 0.5*indoor_distance_mean
     else:
         pltw = 5.0-10.0*np.log10(0.7*np.power(10.0, (-23.-0.3*fc/1e9)/10.0)\
             + 0.3*np.power(10.0, (-5.-4.*fc/1e9)/10.0))
-        return uma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut) + pltw + 0.5*12.5
+        return uma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut) + pltw + 0.5*indoor_distance_mean
 
 def pathloss(model, submodel, *args):
     r"""
@@ -1129,27 +1132,30 @@ def pathloss_std(model, submodel, o2i_model=None):
         elif submodel == 'nlos':
             return 0.0
         elif submodel == 'o2i':
-            return np.sqrt((4.4**2)+0.25/12*(10**2))
+            indoor_distance_var = (10**2)/18
+            return np.sqrt((4.4**2)+0.25*indoor_distance_var)
     elif model == 'umi':
         if submodel == 'los':
             return 0.0
         elif submodel == 'nlos':
             return 0.0
         elif submodel == 'o2i':
+            indoor_distance_var = (25**2)/18
             if o2i_model == 'low':
-                return np.sqrt((4.4**2)+0.25/12*(25**2))
+                return np.sqrt((4.4**2)+0.25*indoor_distance_var)
             elif o2i_model == 'high':
-                return np.sqrt((6.5**2)+0.25/12*(25**2))
+                return np.sqrt((6.5**2)+0.25*indoor_distance_var)
     elif model == 'uma':
         if submodel == 'los':
             return 0.0
         elif submodel == 'nlos':
             return 0.0
         elif submodel == 'o2i':
+            indoor_distance_var = (25**2)/18
             if o2i_model == 'low':
-                return np.sqrt((4.4**2)+0.25/12*(25**2))
+                return np.sqrt((4.4**2)+0.25*indoor_distance_var)
             elif o2i_model == 'high':
-                return np.sqrt((6.5**2)+0.25/12*(25**2))
+                return np.sqrt((6.5**2)+0.25*indoor_distance_var)
 
 ############# ZoD offset
 

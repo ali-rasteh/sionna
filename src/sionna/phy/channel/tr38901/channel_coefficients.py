@@ -840,7 +840,7 @@ class ChannelCoefficientsGenerator(Object):
 
         return d_1
 
-    def _step_11_nlos(self, phi, topology, rays, t, c_ds, ed=None):
+    def _step_11_nlos(self, phi, topology, rays, t, c_ds=None, ed=None):
         # pylint: disable=line-too-long
         r"""
         Compute the full NLOS channel matrix (7.5-28)
