@@ -777,7 +777,7 @@ class TestChannelCoefficientsGenerator(unittest.TestCase):
         # Phase shift due to propagation delay
         d3D = topology.distance_3d.numpy()
         lambda_0 = self.scenario.lambda_0.numpy()
-        H_delay = np.exp(1j*2*np.pi*d3D/lambda_0)
+        H_delay = np.exp(-1j*2*np.pi*d3D/lambda_0)
 
         # Combining all to compute channel coefficient
         H_field = np.expand_dims(np.squeeze(H_field, axis=4), axis=-1)

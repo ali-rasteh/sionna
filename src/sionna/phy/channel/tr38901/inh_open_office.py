@@ -35,7 +35,7 @@ class InHOpenOffice(SystemLevelChannel):
     ...                       carrier_frequency = 3.5e9)
     >>> # Instantiating InHOpenOffice channel model
     >>> channel_model = InHOpenOffice(carrier_frequency = 3.5e9,
-    ...                     o2i_model = 'low',
+    ...                     o2i_model = 'none',
     ...                     ut_array = ut_array,
     ...                     bs_array = bs_array,
     ...                     direction = 'uplink')
@@ -62,10 +62,9 @@ class InHOpenOffice(SystemLevelChannel):
     carrier_frequency : `float`
         Carrier frequency in Hertz
 
-    o2i_model : "low" | "high"
+    o2i_model : "none"
         Outdoor-to-indoor loss model for UTs located indoor.
-        Set this parameter to "low" to use the low-loss model, or to "high"
-        to use the high-loss model.
+        Set this parameter to "none" as this scenario does not support O2I loss.
         See section 7.4.3 of [TR38901]_ for details.
 
     rx_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
@@ -89,6 +88,9 @@ class InHOpenOffice(SystemLevelChannel):
         If `True`, new large scale parameters (LSPs) are generated for every
         new generation of channel impulse responses. Otherwise, always reuse
         the same LSPs, except if the topology is changed.
+
+    release_number : "18" (default) | "19"
+        Release number of the 3GPP specification to use.
 
     calibration_mode : `bool`, (default `False`)
         If `True`, use calibration mode for the antenna arrays.

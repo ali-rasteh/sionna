@@ -157,6 +157,15 @@ def log10DS(model, submodel, fc):
         if submodel == 'los' : return (-6.955 - 0.0963*np.log10(fc), 0.66)
         elif submodel == 'nlos' : return (-6.28 - 0.204*np.log10(fc), 0.39)
         elif submodel == 'o2i' : return (-6.62, 0.32)
+    elif model == 'sma':
+        if submodel == 'los' : return (-7.42, 0.60)
+        elif submodel == 'nlos' : return (-7.2, 0.58)
+        elif submodel == 'o2i' : return (-7.2, 0.58)
+    elif model == 'inho':
+        if fc < 6. : fc = 6.
+        if submodel == 'los' : return (-0.01*np.log10(1.+fc)-7.692, 0.18)
+        elif submodel == 'nlos' : return (-0.28*np.log10(1.+fc)-7.173,
+                                          0.1*np.log10(1.+fc)+0.055)
 
 def log10ASD(model, submodel, fc):
     r"""
@@ -198,6 +207,13 @@ def log10ASD(model, submodel, fc):
         if submodel == 'los' : return (1.06 + 0.1114*np.log10(fc), 0.28)
         elif submodel == 'nlos' : return (1.5 - 0.1144*np.log10(fc), 0.28)
         elif submodel == 'o2i' : return (1.25, 0.42)
+    elif model == 'sma':
+        if submodel == 'los' : return (0.48, 0.27)
+        elif submodel == 'nlos' : return (0.51, 0.33)
+        elif submodel == 'o2i' : return (0.51, 0.33)
+    elif model == 'inho':
+        if submodel == 'los' : return (1.6, 0.18)
+        elif submodel == 'nlos' : return (1.62, 0.25)
 
 def log10ASA(model, submodel, fc):
     r"""
@@ -240,6 +256,16 @@ def log10ASA(model, submodel, fc):
         if submodel == 'los' : return (1.81, 0.20)
         elif submodel == 'nlos' : return (2.08 - 0.27*np.log10(fc), 0.11)
         elif submodel == 'o2i' : return (1.76, 0.16)
+    elif model == 'sma':
+        if submodel == 'los' : return (1.43, 0.12)
+        elif submodel == 'nlos' : return (1.63, 0.26)
+        elif submodel == 'o2i' : return (1.63, 0.26)
+    elif model == 'inho':
+        if fc < 6. : fc = 6.
+        if submodel == 'los' : return (-0.19*np.log10(1.+fc)+1.781,
+                                       0.12*np.log10(1.+fc)+0.119)
+        elif submodel == 'nlos' : return (-0.11*np.log10(1.+fc)+1.863,
+                                          0.12*np.log10(1.+fc)+0.059)
 
 def log10ZSA(model, submodel, fc):
     r"""
@@ -282,6 +308,16 @@ def log10ZSA(model, submodel, fc):
         if submodel == 'los' : return (0.95, 0.16)
         elif submodel == 'nlos' : return (-0.3236*np.log10(fc) + 1.512, 0.16)
         elif submodel == 'o2i' : return (1.01, 0.43)
+    elif model == 'sma':
+        if submodel == 'los' : return (1.18, 0.05)
+        elif submodel == 'nlos' : return (1.16, 0.14)
+        elif submodel == 'o2i' : return (1.16, 0.14)
+    elif model == 'inho':
+        if fc < 6. : fc = 6.
+        if submodel == 'los' : return (-0.26*np.log10(1.+fc)+1.44,
+                                       -0.04*np.log10(1.+fc)+0.264)
+        elif submodel == 'nlos' : return (-0.15*np.log10(1.+fc)+1.387,
+                                          -0.09*np.log10(1.+fc)+0.746)
 
 def log10SF_dB(model, submodel, d_2d, fc, h_bs, h_ut):
     r"""
@@ -333,6 +369,18 @@ def log10SF_dB(model, submodel, d_2d, fc, h_bs, h_ut):
         if submodel == 'los' : return (0.0, 4.0)
         elif submodel == 'nlos' : return (0.0, 6.0)
         elif submodel == 'o2i' : return (0.0, 7.0)
+    elif model == 'sma':
+        d_bp = 2.*np.pi*fc/3e8*h_bs*h_ut
+        if submodel == 'los' :
+            if d_2d < d_bp:
+                return (0.0, 4.0)
+            else:
+                return (0.0, 6.0)
+        elif submodel == 'nlos' : return (0.0, 8.0)
+        elif submodel == 'o2i' : return (0.0, 8.0)
+    elif model == 'inho':
+        if submodel == 'los' : return (0.0, 3.0)
+        elif submodel == 'nlos' : return (0.0, 8.03)
 
 def log10K_dB(model, submodel):
     r"""
@@ -367,6 +415,13 @@ def log10K_dB(model, submodel):
         if submodel == 'los' : return (9.0, 3.5)
         elif submodel == 'nlos' : return None
         elif submodel == 'o2i' : return None
+    elif model == 'sma':
+        if submodel == 'los' : return (9.0, 7.0)
+        elif submodel == 'nlos' : return None
+        elif submodel == 'o2i' : return None
+    elif model == 'inho':
+        if submodel == 'los' : return (7.0, 4.0)
+        elif submodel == 'nlos' : return None
 
 def log10ZSD(model, submodel, d_2d, fc, h_bs, h_ut):
     r"""
@@ -433,7 +488,17 @@ def log10ZSD(model, submodel, d_2d, fc, h_bs, h_ut):
         elif submodel == 'o2i' : return (np.maximum(-0.5,
                         -2.1*d_2d/1000.-0.01*(h_ut-1.5)+0.9),
                                        0.49)
+    
+    elif model == 'sma':
+        if submodel == 'los' : return (0.14, 0.16)
+        elif submodel == 'nlos' : return (0.14, 0.16)
+        elif submodel == 'o2i' : return (0.14, 0.16)
 
+    elif model == 'inho':
+        if fc < 6. : fc = 6.
+        if submodel == 'los' : return (-1.43*np.log10(1.+fc)+2.228,
+                                       0.13*np.log10(1.+fc)+0.30)
+        elif submodel == 'nlos' : return (1.08, 0.36)
 
 ######## LSP cross-correlations
 # Order: DS, ASD, ASA, SF, (K if LoS), ZSA, ZSD
@@ -526,7 +591,48 @@ def cross_corr(model, submodel):
                             [-0.5, 0.2, 0.0, 1.0, 0.0, 0.0],
                             [-0.2, 0.0, 0.5, 0.0, 1.0, 0.5],
                             [-0.6, -0.2, 0.0, 0.0, 0.5, 1.0]])
+    elif model == 'sma':
+        if submodel == 'los': # ds,  asd,  asa,  sf,    k,   zsa,  zsd
+            return np.array([[ 1.0,  0.4,  0.8, -0.4, -0.4,  0.0, -0.2 ],
+                             [ 0.4,  1.0,  0.0, -0.5,  0.0,  0.0,  0.5 ],
+                             [ 0.8,  0.0,  1.0, -0.5, -0.2,  0.4, -0.3 ],
+                             [-0.4, -0.5, -0.5,  1.0,  0.0, -0.8,  0.0 ],
+                             [-0.4,  0.0, -0.2,  0.0,  1.0,  0.0,  0.0 ],
+                             [ 0.0,  0.0,  0.4, -0.8,  0.0,  1.0,  0.0 ],
+                             [-0.2,  0.5, -0.3,  0.0,  0.0,  0.0,  1.0 ]])
+        elif submodel == 'nlos':#ds, asd,  asa,   sf,        zsa,  zsd
+            return np.array([[ 1.0,  0.0,  0.7, -0.13,       0.0, -0.5 ],
+                             [ 0.0,  1.0,  0.0, -0.4,       -0.1,  0.5 ],
+                             [ 0.7,  0.0,  1.0,  0.0,        0.36, 0.0 ],
+                             [-0.13,-0.4,  0.0,  1.0,       -0.47, 0.0 ],
+                             [ 0.0, -0.1,  0.36,-0.47,       1.0,  0.0 ],
+                             [-0.5,  0.5,  0.0,  0.0,        0.0,  1.0 ]])
+        elif submodel == 'o2i':#ds,  asd,  asa,   sf,        zsa,  zsd
+            return np.array([[ 1.0,  0.0,  0.7, -0.13,       0.0, -0.5 ],
+                             [ 0.0,  1.0,  0.0, -0.4,       -0.1,  0.5 ],
+                             [ 0.7,  0.0,  1.0,  0.0,        0.36, 0.0 ],
+                             [-0.13,-0.4,  0.0,  1.0,       -0.47, 0.0 ],
+                             [ 0.0, -0.1,  0.36,-0.47,       1.0,  0.0 ],
+                             [-0.5,  0.5,  0.0,  0.0,        0.0,  1.0 ]])
 
+    elif model == 'inho':
+        if submodel == 'los': # ds,  asd,  asa,  sf,    k,   zsa,  zsd
+            return np.array([[ 1.0,  0.6,  0.8, -0.8, -0.5,  0.2,  0.1 ],
+                             [ 0.6,  1.0,  0.4, -0.4,  0.0,  0.0,  0.5 ],
+                             [ 0.8,  0.4,  1.0, -0.5,  0.0,  0.5,  0.0 ],
+                             [-0.8, -0.4, -0.5,  1.0,  0.5,  0.3,  0.2 ],
+                             [-0.5,  0.0,  0.0,  0.5,  1.0,  0.1,  0.0 ],
+                             [ 0.2,  0.0,  0.5,  0.3,  0.1,  1.0,  0.0 ],
+                             [ 0.1,  0.5,  0.0,  0.2,  0.0,  0.0,  1.0 ]])
+        elif submodel == 'nlos':#ds, asd,  asa,   sf,        zsa,  zsd
+            return np.array([[ 1.0,  0.4,  0.0, -0.5,       -0.06,-0.27],
+                             [ 0.4,  1.0,  0.0,  0.0,        0.23, 0.35],
+                             [ 0.0,  0.0,  1.0, -0.4,        0.43,-0.08],
+                             [-0.5,  0.0, -0.4,  1.0,        0.0,  0.0 ],
+                             [-0.06, 0.23, 0.43, 0.0,        1.0,  0.42],
+                             [-0.27, 0.35,-0.08, 0.0,        0.42, 1.0 ]])
+        
+        
 ######## LSP spatial correlations
 # Order: DS, ASD, ASA, SF, (K if LoS), ZSA, ZSD
 
@@ -559,6 +665,13 @@ def corr_dist_ds(model, submodel):
         if submodel == 'los' : return 50
         elif submodel == 'nlos' : return 36
         elif submodel == 'o2i' : return 36
+    elif model == 'sma':
+        if submodel == 'los' : return 6
+        elif submodel == 'nlos' : return 40
+        elif submodel == 'o2i' : return 40
+    elif model == 'inho':
+        if submodel == 'los' : return 8
+        elif submodel == 'nlos' : return 5
 
 def corr_dist_asd(model, submodel):
     r"""
@@ -589,6 +702,13 @@ def corr_dist_asd(model, submodel):
         if submodel == 'los' : return 25
         elif submodel == 'nlos' : return 30
         elif submodel == 'o2i' : return 30
+    elif model == 'sma':
+        if submodel == 'los' : return 15
+        elif submodel == 'nlos' : return 30
+        elif submodel == 'o2i' : return 30
+    elif model == 'inho':
+        if submodel == 'los' : return 7
+        elif submodel == 'nlos' : return 3
 
 def corr_dist_asa(model, submodel):
     r"""
@@ -619,6 +739,13 @@ def corr_dist_asa(model, submodel):
         if submodel == 'los' : return 35
         elif submodel == 'nlos' : return 40
         elif submodel == 'o2i' : return 40
+    elif model == 'sma':
+        if submodel == 'los' : return 20
+        elif submodel == 'nlos' : return 30
+        elif submodel == 'o2i' : return 30
+    elif model == 'inho':
+        if submodel == 'los' : return 5
+        elif submodel == 'nlos' : return 3
 
 def corr_dist_sf(model, submodel):
     r"""
@@ -649,6 +776,13 @@ def corr_dist_sf(model, submodel):
         if submodel == 'los' : return 37
         elif submodel == 'nlos' : return 120
         elif submodel == 'o2i' : return 120
+    elif model == 'sma':
+        if submodel == 'los' : return 40
+        elif submodel == 'nlos' : return 50
+        elif submodel == 'o2i' : return 50
+    elif model == 'inho':
+        if submodel == 'los' : return 10
+        elif submodel == 'nlos' : return 6
 
 def corr_dist_k(model, submodel):
     r"""
@@ -673,6 +807,10 @@ def corr_dist_k(model, submodel):
         if submodel == 'los' : return 12
     elif model == 'rma':
         if submodel == 'los' : return 40
+    elif model == 'sma':
+        if submodel == 'los' : return 10
+    elif model == 'inho':
+        if submodel == 'los' : return 4
 
 def corr_dist_zsa(model, submodel):
     r"""
@@ -703,6 +841,13 @@ def corr_dist_zsa(model, submodel):
         if submodel == 'los' : return 15
         elif submodel == 'nlos' : return 50
         elif submodel == 'o2i' : return 50
+    elif model == 'sma':
+        if submodel == 'los' : return 15
+        elif submodel == 'nlos' : return 50
+        elif submodel == 'o2i' : return 50
+    elif model == 'inho':
+        if submodel == 'los' : return 4
+        elif submodel == 'nlos' : return 4
 
 def corr_dist_zsd(model, submodel):
     r"""
@@ -733,6 +878,13 @@ def corr_dist_zsd(model, submodel):
         if submodel == 'los' : return 15
         elif submodel == 'nlos' : return 50
         elif submodel == 'o2i' : return 50
+    elif model == 'sma':
+        if submodel == 'los' : return 15
+        elif submodel == 'nlos' : return 50
+        elif submodel == 'o2i' : return 50
+    elif model == 'inho':
+        if submodel == 'los' : return 4
+        elif submodel == 'nlos' : return 4
 
 ####### Pathlosses
 
@@ -1059,6 +1211,175 @@ def uma_o2i_pathloss(d_2d, d_3d, fc, h_bs, h_ut, o2i_model):
         pltw = 5.0-10.0*np.log10(0.7*np.power(10.0, (-23.-0.3*fc/1e9)/10.0)\
             + 0.3*np.power(10.0, (-5.-4.*fc/1e9)/10.0))
         return uma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut) + pltw + 0.5*indoor_distance_mean
+    
+def sma_los_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w):
+    r"""
+    Return the LoS pathloss for SMa.
+
+    Input
+    ------
+    d_2d : float
+        2D distance [m]
+
+    d_3d : float
+        3D distance [m]
+
+    fc : float
+        Frequency carruer [Hz]
+
+    h_bs : float
+        BS height [m]
+
+    h_ut : float
+        UT height [m]
+
+    h : float
+        Average building height
+
+    w : float
+        Average street width
+
+    Output
+    -------
+    : float
+        Pathloss [dB]
+    """
+    dbp = 2*np.pi*h_bs*h_ut*fc/299792458.
+    def pl1(d_):
+        p = (20.0*np.log10(40*np.pi*d_*fc/3e9)
+               + np.minimum(0.03*np.power(h,1.72),10.0)*np.log10(d_)
+               - np.minimum(0.044*np.power(h,1.72),14.77)+0.002*np.log10(h)*d_)
+        return p
+    if d_2d < dbp:
+        return pl1(d_3d)
+    return pl1(dbp) + 40.0*np.log10(d_3d/dbp)
+
+def sma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w):
+    r"""
+    Return the NLoS pathloss for SMa.
+
+    Input
+    ------
+    d_2d : float
+        2D distance [m]
+
+    d_3d : float
+        3D distance [m]
+
+    fc : float
+        Frequency carruer [Hz]
+
+    h_bs : float
+        BS height [m]
+
+    h_ut : float
+        UT height [m]
+
+    h : float
+        Average building height
+
+    w : float
+        Average street width
+
+    Output
+    -------
+    : float
+        Pathloss [dB]
+    """
+    pl_nlos = (161.04 - 7.1*np.log10(w) + 7.5*np.log10(h)
+           - (24.37-3.7*np.square(h/h_bs))*np.log10(h_bs)
+              +(43.42-3.1*np.log10(h_bs))*(np.log10(d_3d)-3)
+              +20*np.log10(fc/1e9)-(3.2*np.square(np.log10(11.75*h_ut))-4.97))
+    return pl_nlos
+
+def sma_o2i_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w, o2i_model):
+    r"""
+    Return the O2I average pathloss for SMa.
+
+    Input
+    ------
+    d_2d : float
+        2D distance [m]
+
+    d_3d : float
+        3D distance [m]
+
+    fc : float
+        Frequency carruer [Hz]
+
+    h_bs : float
+        BS height [m]
+
+    h_ut : float
+        UT height [m]
+
+    h : float
+        Average building height
+
+    w : float
+        Average street width
+    
+    o2i_model : str
+        O2I loss model. Must be 'low', 'high' or 'low-A'
+
+    Output
+    -------
+    : float
+        Pathloss [dB]
+    """
+    indoor_distance_mean = 25./3
+    if o2i_model == 'low':
+        pltw = 5.0-10.0*np.log10(0.3*np.power(10.0, (-2.-0.2*fc/1e9)/10.0)\
+            + 0.7*np.power(10.0, (-5.-4.*fc/1e9)/10.0))
+        return uma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w) + pltw + 0.5*indoor_distance_mean
+    elif o2i_model == 'high':
+        pltw = 5.0-10.0*np.log10(0.7*np.power(10.0, (-23.-0.3*fc/1e9)/10.0)\
+            + 0.3*np.power(10.0, (-5.-4.*fc/1e9)/10.0))
+        return uma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w) + pltw + 0.5*indoor_distance_mean
+    elif o2i_model == 'low-A':
+        pltw = 5.0-10.0*np.log10(0.3*np.power(10.0, (-2.-0.2*fc/1e9)/10.0)\
+            + 0.7*np.power(10.0, (-1.03-0.17*fc/1e9)/10.0))
+        return uma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w) + pltw + 0.5*indoor_distance_mean
+
+def inho_los_pathloss(d_3d, fc):
+    r"""
+    Return the LoS pathloss for InHOpenOffice.
+
+    Input
+    ------
+    d_3d : float
+        3D distance [m]
+
+    fc : float
+        Frequency carruer [Hz]
+
+    Output
+    -------
+    : float
+        Pathloss [dB]
+    """
+    pl_los = 32.4 + 17.3*np.log10(d_3d) + 20.0*np.log10(fc/1e9)
+    return pl_los
+
+def inho_nlos_pathloss(d_3d, fc):
+    r"""
+    Return the NLoS pathloss for InHOpenOffice.
+
+    Input
+    ------
+    d_3d : float
+        3D distance [m]
+
+    fc : float
+        Frequency carruer [Hz]
+
+    Output
+    -------
+    : float
+        Pathloss [dB]
+    """
+    pl3 = 38.3*np.log10(d_3d) + 17.3 + 24.9*np.log10(fc/1e9)
+    return np.maximum(inho_los_pathloss(d_3d, fc), pl3)
 
 def pathloss(model, submodel, *args):
     r"""
@@ -1103,6 +1424,18 @@ def pathloss(model, submodel, *args):
             return uma_nlos_pathloss(*args)
         elif submodel == 'o2i':
             return uma_o2i_pathloss(*args)
+    elif model == 'sma':
+        if submodel == 'los':
+            return sma_los_pathloss(*args)
+        elif submodel == 'nlos':
+            return sma_nlos_pathloss(*args)
+        elif submodel == 'o2i':
+            return sma_o2i_pathloss(*args)
+    elif model == 'inho':
+        if submodel == 'los':
+            return inho_los_pathloss(*args)
+        elif submodel == 'nlos':
+            return inho_nlos_pathloss(*args)
 
 def pathloss_std(model, submodel, o2i_model=None):
     r"""
@@ -1156,10 +1489,29 @@ def pathloss_std(model, submodel, o2i_model=None):
                 return np.sqrt((4.4**2)+0.25*indoor_distance_var)
             elif o2i_model == 'high':
                 return np.sqrt((6.5**2)+0.25*indoor_distance_var)
+    elif model == 'sma':
+        if submodel == 'los':
+            return 0.0
+        elif submodel == 'nlos':
+            return 0.0
+        elif submodel == 'o2i':
+            # Assuming UTs in commercial area
+            indoor_distance_var = (25**2)/18
+            if o2i_model == 'low':
+                return np.sqrt((4.4**2)+0.25*indoor_distance_var)
+            elif o2i_model == 'high':
+                return np.sqrt((6.5**2)+0.25*indoor_distance_var)
+            elif o2i_model == 'low-A':
+                return np.sqrt((4.4**2)+0.25*indoor_distance_var)
+    elif model == 'inho':
+        if submodel == 'los':
+            return 0.0
+        elif submodel == 'nlos':
+            return 0.0
 
 ############# ZoD offset
 
-def zod_offset(model, submodel, fc, d_2d, h_ut):
+def zod_offset(model, submodel, fc, d_2d, h_ut, h_bs=None):
     """
     Return the ZOD offset
 
@@ -1179,6 +1531,9 @@ def zod_offset(model, submodel, fc, d_2d, h_ut):
 
     h_ut : float
         UT height [m]
+    
+    h_bs : float, default is None
+        BS height [m]
 
     Output
     -------
@@ -1214,10 +1569,22 @@ def zod_offset(model, submodel, fc, d_2d, h_ut):
             return np.arctan((35. - 3.5)/d_2d) - np.arctan((35 - 1.5)/d_2d)
         elif submodel == 'o2i':
             return np.arctan((35 - 3.5)/d_2d) - np.arctan((35 - 1.5)/d_2d)
+    elif model == 'sma':
+        if submodel == 'los':
+            return 0.0
+        elif submodel == 'nlos' or submodel == 'o2i':
+            h_cl = 3.5
+            return np.where(np.less(h_ut, h_cl),
+                   np.arctan((h_bs - h_cl)/d_2d) - np.arctan((h_bs - h_ut)/d_2d), 0.)
+    elif model == 'inho':
+        if submodel == 'los':
+            return 0.0
+        elif submodel == 'nlos':
+            return 0.0
 
 ###### LoS probability
 
-def los_probability(model, d_2d_out, h_ut):
+def los_probability(model, d_2d_out, h_ut, h_bs=None, d_2d_in=None):
     """Return LoS probability
 
     Input
@@ -1230,6 +1597,12 @@ def los_probability(model, d_2d_out, h_ut):
 
     h_ut : float
         UT heigh
+    
+    h_bs : float, default is None
+        BS height [m]
+    
+    d_2d_in : float, default is None
+        Indoor distance
 
     Output
     -------
@@ -1246,6 +1619,24 @@ def los_probability(model, d_2d_out, h_ut):
         p1 = (18./d_2d_out)+np.exp(-d_2d_out/63.)*(1.-18./d_2d_out)
         p2 = 1.+c*5/4*np.power(d_2d_out/1e2,3)*np.exp(-d_2d_out/150)
         return np.where(d_2d_out<18., 1., p1*p2)
+    if model == 'sma':
+        d_clutter = 30.
+        h_commercial = 20.
+        h_residential = 8.
+        h_vegetation = 15.
+        r_commercial = 0.02
+        r_residential = 0.18
+        r_vegetation = 0.1
+        k_commercial = -(d_clutter*(h_bs-h_ut))/(np.log(1-r_commercial)*(h_commercial-h_ut))
+        k_residential = -(d_clutter*(h_bs-h_ut))/(np.log(1-r_residential)*np.maximum(h_residential-h_ut, 0.))
+        k_vegetation = -(d_clutter*(h_bs-h_ut))/(np.log(1-r_vegetation)*(h_vegetation-h_ut))
+        p_los = np.exp(-d_2d_out/k_commercial) * np.exp(-d_2d_out/k_residential) * np.exp(-d_2d_out/k_vegetation)
+        return np.where(d_2d_out <= 10.0, 1.0, p_los)
+    elif model == 'inho':
+        p_1 = np.exp(-(d_2d_in-5.)/70.8)
+        p_2 = 0.54 * np.exp(-(d_2d_in-49.)/211.7)
+        return np.where(d_2d_in <= 5., 1., np.where(d_2d_in <= 49., p_1, p_2))
+
 
 #########################################################################
 # Procedures to generate rays, extracted from 3GPP TR38.901 specification
@@ -1259,7 +1650,12 @@ r_tau = {'rma' : {  'los'  : 3.8,
                     'o2i'  : 2.2},
          'uma' : {  'los'  : 2.5,
                     'nlos' : 2.3,
-                    'o2i'  : 2.2}
+                    'o2i'  : 2.2},
+         'sma' : {  'los'  : 2.4,
+                    'nlos' : 2.4,
+                    'o2i'  : 1.5},
+         'inho': {  'los'  : 3.6,
+                    'nlos' : 3.0}
 }
 
 zeta = {'umi'   : { 'los'  : 3.0,
@@ -1270,7 +1666,12 @@ zeta = {'umi'   : { 'los'  : 3.0,
                     'o2i'  : 4.0},
         'rma'   : { 'los'  : 3.0,
                     'nlos' : 3.0,
-                    'o2i'  : 3.0}
+                    'o2i'  : 3.0},
+        'sma'   : { 'los'  : 3.0,
+                    'nlos' : 3.0,
+                    'o2i'  : 3.0},
+        'inho'  : { 'los'  : 6.0,
+                    'nlos' : 3.0}
 }
 
 C_phi = {   4   : 0.779,
@@ -1311,7 +1712,12 @@ c_asa = {   'umi'   :   {   'los'   :   17,
                             'o2i'   :   8},
             'rma'   :   {   'los'   :   3,
                             'nlos'  :   3,
-                            'o2i'   :   3}
+                            'o2i'   :   3},
+            'sma'   :   {   'los'   :   5,
+                            'nlos'  :   10,
+                            'o2i'   :   10},
+            'inho'  :   {   'los'   :   8,
+                            'nlos'  :   11}
 }
 
 c_asd = {   'umi'   :   {   'los'   :   3,
@@ -1322,7 +1728,12 @@ c_asd = {   'umi'   :   {   'los'   :   3,
                             'o2i'   :   5},
             'rma'   :   {   'los'   :   2,
                             'nlos'  :   2,
-                            'o2i'   :   2}
+                            'o2i'   :   2},
+            'sma'   :   {   'los'   :   2.08,
+                            'nlos'  :   1.33,
+                            'o2i'   :   1.33},
+            'inho'  :   {   'los'   :   5,
+                            'nlos'  :   5}
 }
 
 c_zsa = {   'umi'   :   {   'los'   :   7,
@@ -1333,7 +1744,12 @@ c_zsa = {   'umi'   :   {   'los'   :   7,
                             'o2i'   :   3},
             'rma'   :   {   'los'   :   3,
                             'nlos'  :   3,
-                            'o2i'   :   3}
+                            'o2i'   :   3},
+            'sma'   :   {   'los'   :   7,
+                            'nlos'  :   7,
+                            'o2i'   :   7},
+            'inho'  :   {   'los'   :   9,
+                            'nlos'  :   9}
 }
 
 xpr_mu = {  'umi'   :   {   'los'   :   9.0,
@@ -1344,7 +1760,12 @@ xpr_mu = {  'umi'   :   {   'los'   :   9.0,
                             'o2i'   :   9.0},
             'rma'   :   {   'los'   :   12.0,
                             'nlos'  :   7.0,
-                            'o2i'   :   7.0}
+                            'o2i'   :   7.0},
+            'sma'   :   {   'los'   :   8.0,
+                            'nlos'  :   4.0,
+                            'o2i'   :   4.0},
+            'inho'  :   {   'los'   :   11.0,
+                            'nlos'  :   10.0}
 }
 
 xpr_std = {  'umi'   :  {   'los'   :   3.0,
@@ -1355,7 +1776,12 @@ xpr_std = {  'umi'   :  {   'los'   :   3.0,
                             'o2i'   :   5.0},
             'rma'   :   {   'los'   :   4.0,
                             'nlos'  :   3.0,
-                            'o2i'   :   3.0}
+                            'o2i'   :   3.0},
+            'sma'   :   {   'los'   :   4.0,
+                            'nlos'  :   3.0,
+                            'o2i'   :   3.0},
+            'inho'  :   {   'los'   :   4.0,
+                            'nlos'  :   4.0}
 }
 
 def delays(model, submodel, batch_size, num_clusters, ds, k):

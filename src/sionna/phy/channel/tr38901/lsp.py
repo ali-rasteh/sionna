@@ -112,7 +112,7 @@ class LSPGenerator(Object):
             pl_o2i = self._o2i_low_loss_A()
         elif self._scenario.o2i_model == '50/50':
             pl_o2i = self._o2i_50_50_loss()
-        else:
+        else:   # 'none'
             pl_o2i = tf.zeros_like(pl_b)
 
         if self._scenario.o2i_car_model == 'non-metalic':
@@ -587,6 +587,24 @@ class LSPGenerator(Object):
         return pl_tw + pl_in + pl_rnd
 
     def _o2i_50_50_loss(self):
+        """
+        Compute for each BS-UT link the pathloss due to the O2I penetration loss
+        in dB with 50% low-loss and 50% high-loss model.
+        See section 7.4.3.1 of 38.901 specification.
+
+        UTs located outdoor (LoS and NLoS) get O2I pathloss of 0dB.
+
+        Input
+        -----
+        None
+
+        Output
+        -------
+            Tensor with shape
+            [batch size, number of BSs, number of UTs]
+            containing the O2I penetration low-loss in dB for each BS-UT link
+        """
+
         batch_size = self._scenario.batch_size
         num_ut = self._scenario.num_ut
 
@@ -619,7 +637,7 @@ class LSPGenerator(Object):
         in dB with the car loss model.
         See section 7.4.3.2 of 38.901 specification.
 
-        UTs located out of car (LoS and NLoS) get O2I pathloss of 0dB.
+        UTs located out of car (LoS and NLoS) get O2I pathloss of 0 dB.
 
         Input
         -----

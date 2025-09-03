@@ -30,6 +30,9 @@ class SystemLevelChannel(ChannelModel):
         new generation of channel impulse responses. Otherwise, always reuse
         the same LSPs, except if the topology is changed.
 
+    near_field : `bool`, (default `False`)
+        If `True`, use near-field approximation for the antenna arrays.
+
     Input
     -----
     num_time_samples : `int`

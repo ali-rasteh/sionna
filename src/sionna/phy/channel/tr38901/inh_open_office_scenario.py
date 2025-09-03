@@ -19,7 +19,7 @@ class InHOpenOfficeScenario(SystemLevelScenario):
     carrier_frequency : `float`
         Carrier frequency [Hz]
 
-    o2i_model : "low" | "high"
+    o2i_model : "none"
         Outdoor to indoor (O2I) pathloss model, used for indoor UTs,
         see section 7.4.3 from 38.901 specification
 
@@ -37,6 +37,16 @@ class InHOpenOfficeScenario(SystemLevelScenario):
 
     enable_shadow_fading : `bool`, (default `True`)
         If `True`, apply shadow fading. Otherwise doesn't.
+
+    o2i_car_model : `None` (default) | "non-metalic"
+        Outdoor to indoor (O2I) car pathloss model, used for outdoor UTs,
+        see section 7.4.3.2 from 38.901 specification.
+
+    release_number : "18" (default) | "19"
+        Release number of the 3GPP specification to use.
+
+    calibration_mode : `bool`, (default `False`)
+        If `True`, enable calibration mode. Default is `False`.
 
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
@@ -80,7 +90,7 @@ class InHOpenOfficeScenario(SystemLevelScenario):
     @property
     def los_probability(self):
         r"""Probability of each UT to be LoS. Used to randomly generate LoS
-        status of outdoor UTs.
+        status of UTs.
 
         Computed following section 7.4.2 of TR 38.901.
 
@@ -90,7 +100,6 @@ class InHOpenOfficeScenario(SystemLevelScenario):
         
         cond1 = distance_2d_in <= 5.0
         cond2 = tf.logical_and(distance_2d_in > 5.0, distance_2d_in <= 49.0)
-        cond3 = distance_2d_in > 49.0
 
         los_probability_1 = tf.ones_like(distance_2d_in)
         los_probability_2 = tf.exp(-(distance_2d_in-5.)/70.8)
@@ -241,13 +250,10 @@ class InHOpenOfficeScenario(SystemLevelScenario):
         h_ut = self.h_ut
         h_ut = tf.expand_dims(h_ut, axis=1) # For broadcasting
 
-
         ## Basic path loss for LoS
-
         pl_los = 32.4 + 17.3*log10(distance_3d) + 20.0*log10(fc/1e9)
 
         ## Basic pathloss for NLoS and O2I
-
         pl_1 = 38.3*log10(distance_3d) + 17.3 + 24.9*log10(fc/1e9)
         pl_nlos = tf.math.maximum(pl_los, pl_1)
 
@@ -303,7 +309,7 @@ class InHOpenOfficeScenario(SystemLevelScenario):
     def _sample_indoor_distance(self):
         r"""Set indoor distances equal to the total distances and
         outdoor distances to zero, because this scenario
-        does not consider outdoor UTs.
+        does not have any outdoor UTs.
         """
         # Sample the indoor 2D distances for each BS-UT link
         self._distance_2d_in = self.distance_2d

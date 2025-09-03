@@ -788,15 +788,9 @@ class HexGrid(Block):
             tf.abs(self.cell_height - min_ut_height),
             tf.abs(self.cell_height - max_ut_height))
 
-        # Force minimum BS-UT distance >= their height difference
-        # min_bs_ut_dist = tf.maximum(min_bs_ut_dist, cell_ut_min_dist_z)
-
-        # Minimum squared distance between BS and UT on the X-Y plane
-        # r_min2 = min_bs_ut_dist**2 - cell_ut_min_dist_z**2
         r_min2 = min_bs_ut_dist**2
 
         # Maximum squared distance between BS and UT on the X-Y plane
-        # r_max2 = max_bs_ut_dist**2 - cell_ut_max_dist_z**2
         r_max2 = max_bs_ut_dist**2
 
         # Check the consistency of input parameters
@@ -828,18 +822,6 @@ class HexGrid(Block):
         r_max = tf.cast(self.isd, self.rdtype) / (2*tf.math.cos(alpha_half))
         r_max = tf.minimum(r_max, tf.sqrt(r_max2))
 
-        # TODO Check this to be according to 3GPP distribution models
-        # To ensure the UT distribution to be uniformly distributed across the
-        # sector, we sample positions such that their *squared* distance from
-        # the BS is uniformly distributed within (r_min**2, r_max**2)
-        # distance2 = config.tf_rng.uniform(shape=[batch_size,
-        #                                          self.num_cells,
-        #                                          3,
-        #                                          num_ut_per_sector],
-        #                                   minval=r_min2,
-        #                                   maxval=r_max**2,
-        #                                   dtype=self.rdtype)
-        # distance = tf.sqrt(distance2)
         distance = config.tf_rng.uniform(shape=[batch_size,
                                                  self.num_cells,
                                                  3,
@@ -1113,7 +1095,6 @@ class Square(Object):
     def coord_euclid(self, value):
         self._coord_euclid = tf.cast(value, self.rdtype)
 
-
     @property
     def radius(self):
         """
@@ -1125,7 +1106,6 @@ class Square(Object):
     @radius.setter
     def radius(self, value):
         self._radius = tf.cast(value, self.rdtype)
-
 
     def corners(self):
         """
@@ -1806,7 +1786,7 @@ def gen_hexgrid_topology(batch_size,
     batch_size : `int`
         Batch size
 
-    num_ut : `int`
+    num_ut_per_sector : `int`
         Number of UTs to sample per batch example
 
     scenario : "uma" | "umi" | "rma" | "uma-calibration" | "umi-calibration"
@@ -2077,8 +2057,14 @@ def gen_indoorgrid_topology(batch_size,
     batch_size : `int`
         Batch size
 
-    num_ut : `int`
-        Number of UTs to sample per batch example
+    room_length : `float`
+        Length of the room [m]
+
+    room_width : `float`
+        Width of the room [m]
+
+    num_ut_per_sector : `int`
+        Number of UTs to sample per sector per batch example
 
     scenario : "inh-open-office"
         System level model scenario

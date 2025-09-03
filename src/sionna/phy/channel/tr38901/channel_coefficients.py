@@ -619,6 +619,9 @@ class ChannelCoefficientsGenerator(Object):
 
         zod : [batch size, num TXs, num RXs, num clusters, num rays], tf.float
             Zenith angles of departure [radian]
+
+        d1 : [batch size, num TXs, num RXs, num clusters, num rays]
+            d1 distance in the equation 7.6-47
         Output
         ------
         h_array : [batch size, num_tx, num rx, num clusters, num rays, num rx antennas, num tx antennas], tf.complex
@@ -795,6 +798,9 @@ class ChannelCoefficientsGenerator(Object):
         rays : Rays
             Rays
 
+        c_ds : [batch size, num TX, num RX], `tf.float`
+            Cluster delay spread
+
         ed: [batch size, num TX, num RX], `tf.float`
             Excess delay in the absolute time of arrival [s]
 
@@ -858,6 +864,9 @@ class ChannelCoefficientsGenerator(Object):
 
         t : [num time samples], tf.float
             Time samples
+
+        c_ds : [batch size, num TX, num RX], `tf.float`
+            Cluster delay spread
 
         ed: [batch size, num TX, num RX], `tf.float`
             Excess delay in the absolute time of arrival [s]

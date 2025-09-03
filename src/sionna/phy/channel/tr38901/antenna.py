@@ -53,9 +53,8 @@ class AntennaElement(Object):
             self._radiation_pattern = self._radiation_pattern_38901
             self._polarization_model = self._polarization_model_38901_2
         elif pattern == "38.901-ut":
-            # TODO
+            # Model 1 should be used if needed
             self._radiation_pattern = self._radiation_pattern_38901_ut
-            # self._polarization_model = self._polarization_model_38901_1
             self._polarization_model = self._polarization_model_38901_2
 
     def field(self, theta, phi):
@@ -155,7 +154,7 @@ class AntennaElement(Object):
     
     def _radiation_pattern_38901_ut(self, theta, phi):
         """
-        Radiation pattern from TR38901 release 19 (Table 7.3-2)
+        UT Radiation pattern from TR38901 release 19 (Table 7.3-2)
 
         Inputs
         -------
@@ -871,20 +870,16 @@ class UtArray(Object):
 
     This class is used to create models of the antenna arrays used by the
     user terminals and that need to be specified when using the
-    :ref:`CDL <cdl>`, :ref:`UMi <umi>`, :ref:`UMa <uma>`, and :ref:`RMa <rma>`
-    models.
+    :ref:`SMa <sma>` model.
 
     Example
     --------
 
-    >>> array = UtArray(num_rows_per_panel = 4,
-...                    num_cols_per_panel = 4,
-...                    polarization = 'dual',
+    >>> array = UtArray(polarization = 'dual',
 ...                    polarization_type = 'VH',
-...                    antenna_pattern = '38.901',
+...                    antenna_pattern = '38.901-ut',
 ...                    carrier_frequency = 3.5e9,
-...                    num_cols = 2,
-...                    panel_horizontal_spacing = 3.)
+...                    location_indices = [1,2,3,4,5,6,7,8])
     >>> array.show()
 
     Parameters
@@ -1072,7 +1067,7 @@ class UtArray(Object):
 
     def field(self, theta, phi):
         """
-        Field pattern of the panel array in the local coordinate system
+        Field pattern of the UT array in the local coordinate system
 
         Inputs
         -------
@@ -1125,7 +1120,7 @@ class UtArray(Object):
         return f_array
     
     def show(self):
-        """Show the panel array geometry"""
+        """Show the UT array geometry"""
         if self._polarization == 'single':
             if self._polarization_type == 'H':
                 marker_p1 = MarkerStyle("_").get_marker()

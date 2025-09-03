@@ -19,7 +19,7 @@ class SMaScenario(SystemLevelScenario):
     carrier_frequency : `float`
         Carrier frequency [Hz]
 
-    o2i_model : "low" | "high"
+    o2i_model : "low" | "high" | "low-A" | "50/50"
         Outdoor to indoor (O2I) pathloss model, used for indoor UTs,
         see section 7.4.3 from 38.901 specification
 

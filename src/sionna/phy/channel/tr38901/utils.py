@@ -45,6 +45,9 @@ class ScenarioCalibrationParameters(Object):
     max_ut_velocity_indoor : `tf.float`, optional
         Maximum UT velocity for indoor UTs [m/s]. If not specified, the
         maximum outdoor UT velocity is used.
+
+    residential_probability : `tf.float`, optional
+        Probability of a UT being in a residential area.
     """
     def __init__(self,  min_bs_ut_dist,
                         isd,

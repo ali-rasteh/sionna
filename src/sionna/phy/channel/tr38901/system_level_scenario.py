@@ -31,7 +31,7 @@ class SystemLevelScenario(Object):
     carrier_frequency : `float`
         Carrier frequency [Hz]
 
-    o2i_model : "low" | "high"
+    o2i_model : "low" | "high" | "low-A" | "50/50" | "none"
         Outdoor to indoor (O2I) pathloss model, used for indoor UTs,
         see section 7.4.3 from 38.901 specification.
 
@@ -54,6 +54,12 @@ class SystemLevelScenario(Object):
         Outdoor to indoor (O2I) car pathloss model, used for outdoor UTs,
         see section 7.4.3.2 from 38.901 specification.
 
+    release_number : "18" (default) | "19"
+        Release number of the 3GPP specification to use.
+
+    calibration_mode : `bool`, (default `False`)
+        If `True`, enable calibration mode. Default is `False`.
+
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
         If set to `None`,
@@ -73,7 +79,7 @@ class SystemLevelScenario(Object):
             self.rdtype)
 
         # O2I model
-        assert o2i_model in ('low', 'high', 'low-A', '50/50'), "o2i_model must be 'low' or 'high' or 'low-A' or '50/50'"
+        assert o2i_model in ('low', 'high', 'low-A', '50/50', 'none'), "o2i_model must be 'low' or 'high' or 'low-A' or '50/50' or 'none'"
         self._o2i_model = o2i_model
         # O2I car model
         if o2i_car_model is not None:
@@ -140,7 +146,7 @@ class SystemLevelScenario(Object):
 
     @property
     def calibration_mode(self):
-        r"""`True` is calibration mode is enabled. `False` otherwise."""
+        r"""`True` if calibration mode is enabled. `False` otherwise."""
         return self._calibration_mode
 
     @property
@@ -611,7 +617,7 @@ class SystemLevelScenario(Object):
     @property
     def o2i_model(self):
         r"""O2I model used for pathloss computation of indoor UTs. Either "low"
-        or "high" or "50/50". See section 7.4.3 or TR 38.901."""
+        or "high" or "low-A" or "50/50" or "none". See section 7.4.3 or TR 38.901."""
         return self._o2i_model
     
     @property

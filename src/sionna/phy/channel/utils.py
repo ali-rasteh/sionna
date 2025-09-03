@@ -568,13 +568,12 @@ def drop_uts_in_sector(batch_size,
     ut_height = tf.cast(ut_height, rdtype)
 
     # Force the minimum BS-UT distance >= their height difference
-    # d_min = tf.maximum(d_min, tf.abs(bs_height - ut_height))
+    d_min = tf.maximum(d_min, tf.abs(bs_height - ut_height))
 
     r = tf.cast(isd*0.5, rdtype)
 
     # Minimum squared distance between BS and UT on the X-Y plane
-    # r_min2 = d_min**2 - (bs_height - ut_height)**2
-    r_min2 = d_min**2
+    r_min2 = d_min**2 - (bs_height - ut_height)**2
 
     # Angles from (-pi/6, pi/6), covering half of the sector and denoted by
     # alpha_half, are randomly sampled for all UTs.
@@ -639,7 +638,7 @@ def set_3gpp_scenario_parameters(scenario,
 
     Input
     --------
-    scenario : "uma" | "umi" | "rma" | inh-open-office | "uma-calibration" | "umi-calibration | inh-open-office-calibration"
+    scenario : "uma" | "umi" | "rma" | inh-open-office | "sma" | "uma-calibration" | "umi-calibration" | "inh-open-office-calibration" | "sma-calibration"
         System level model scenario
 
     min_bs_ut_dist : `None` (default) | `tf.float`
@@ -698,8 +697,8 @@ def set_3gpp_scenario_parameters(scenario,
         Maximim UT velocity [m/s]
     """
 
-    assert scenario in ('uma', 'umi', 'rma', 'inh-open-office', 'uma-calibration', 'umi-calibration', 'inh-open-office-calibration'), \
-        "`scenario` must be one of 'uma', 'umi', 'rma', 'inh-open-office', 'uma-calibration', 'umi-calibration', 'inh-open-office-calibration'"
+    assert scenario in ('uma', 'umi', 'rma', 'inh-open-office', 'sma', 'uma-calibration', 'umi-calibration', 'inh-open-office-calibration', 'sma-calibration'), \
+        "`scenario` must be one of 'uma', 'umi', 'rma', 'inh-open-office', 'sma', 'uma-calibration', 'umi-calibration', 'inh-open-office-calibration', 'sma-calibration'"
 
     if precision is None:
         rdtype = config.tf_rdtype
