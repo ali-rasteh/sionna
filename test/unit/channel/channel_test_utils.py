@@ -100,13 +100,18 @@ def generate_random_bool(bs, n, p, share_state=False):
 # Decorator for making testing all models easier
 #########################################################################
 
-def channel_test_on_models(models, submodels):
+def channel_test_on_models(models, submodels, exclude=None):
+    exclude = set(exclude or ())
     def channel_test_on_models_decorator(func):
         @wraps(func)
         def wrapped_function(self, *args, **kwargs):
             for model in models:
                 for submodel in submodels:
-                    func(self, model, submodel, *args, **kwargs)
+                    if (model, submodel) in exclude:
+                        # self.skipTest(f"Excluded: {model}:{submodel}")
+                        continue
+                    else:
+                        func(self, model, submodel, *args, **kwargs)
         return wrapped_function
     return channel_test_on_models_decorator
 
@@ -212,6 +217,7 @@ def log10ASD(model, submodel, fc):
         elif submodel == 'nlos' : return (0.51, 0.33)
         elif submodel == 'o2i' : return (0.51, 0.33)
     elif model == 'inho':
+        if fc < 6. : fc = 6.
         if submodel == 'los' : return (1.6, 0.18)
         elif submodel == 'nlos' : return (1.62, 0.25)
 
@@ -379,6 +385,7 @@ def log10SF_dB(model, submodel, d_2d, fc, h_bs, h_ut):
         elif submodel == 'nlos' : return (0.0, 8.0)
         elif submodel == 'o2i' : return (0.0, 8.0)
     elif model == 'inho':
+        if fc < 6. : fc = 6.
         if submodel == 'los' : return (0.0, 3.0)
         elif submodel == 'nlos' : return (0.0, 8.03)
 
@@ -1331,15 +1338,15 @@ def sma_o2i_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w, o2i_model):
     if o2i_model == 'low':
         pltw = 5.0-10.0*np.log10(0.3*np.power(10.0, (-2.-0.2*fc/1e9)/10.0)\
             + 0.7*np.power(10.0, (-5.-4.*fc/1e9)/10.0))
-        return uma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w) + pltw + 0.5*indoor_distance_mean
+        return sma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w) + pltw + 0.5*indoor_distance_mean
     elif o2i_model == 'high':
         pltw = 5.0-10.0*np.log10(0.7*np.power(10.0, (-23.-0.3*fc/1e9)/10.0)\
             + 0.3*np.power(10.0, (-5.-4.*fc/1e9)/10.0))
-        return uma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w) + pltw + 0.5*indoor_distance_mean
+        return sma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w) + pltw + 0.5*indoor_distance_mean
     elif o2i_model == 'low-A':
         pltw = 5.0-10.0*np.log10(0.3*np.power(10.0, (-2.-0.2*fc/1e9)/10.0)\
             + 0.7*np.power(10.0, (-1.03-0.17*fc/1e9)/10.0))
-        return uma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w) + pltw + 0.5*indoor_distance_mean
+        return sma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w) + pltw + 0.5*indoor_distance_mean
 
 def inho_los_pathloss(d_3d, fc):
     r"""
@@ -1652,7 +1659,7 @@ r_tau = {'rma' : {  'los'  : 3.8,
                     'nlos' : 2.3,
                     'o2i'  : 2.2},
          'sma' : {  'los'  : 2.4,
-                    'nlos' : 2.4,
+                    'nlos' : 1.5,
                     'o2i'  : 1.5},
          'inho': {  'los'  : 3.6,
                     'nlos' : 3.0}
@@ -1732,8 +1739,8 @@ c_asd = {   'umi'   :   {   'los'   :   3,
             'sma'   :   {   'los'   :   2.08,
                             'nlos'  :   1.33,
                             'o2i'   :   1.33},
-            'inho'  :   {   'los'   :   5,
-                            'nlos'  :   5}
+            'inho'  :   {   'los'   :   5.,
+                            'nlos'  :   5.}
 }
 
 c_zsa = {   'umi'   :   {   'los'   :   7,

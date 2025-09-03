@@ -341,10 +341,157 @@ class TestRays(unittest.TestCase):
         TestRays.los_zod['uma']['o2i'] = scenario.los_zod.numpy()
         TestRays.mu_log_zsd['uma']['o2i'] = scenario.lsp_log_mean[:,0,0,6].numpy()
 
+        #################### SMa
+        TestRays.delays['sma'] = {}
+        TestRays.powers['sma'] = {}
+        TestRays.aoa['sma'] = {}
+        TestRays.aod['sma'] = {}
+        TestRays.zoa['sma'] = {}
+        TestRays.zod['sma'] = {}
+        TestRays.xpr['sma'] = {}
+        TestRays.num_clusters['sma'] = {}
+        TestRays.los_aoa['sma'] = {}
+        TestRays.los_aod['sma'] = {}
+        TestRays.los_zoa['sma'] = {}
+        TestRays.los_zod['sma'] = {}
+        TestRays.mu_log_zsd['sma'] = {}
+        scenario = channel.tr38901.SMaScenario(fc, "low", ut_array,
+                                               bs_array, "downlink",
+                                               vegetation="sparse",
+                                               precision="double")
+        ray_sampler = channel.tr38901.RaysGenerator(scenario)
+
+        #### LoS
+        in_state = generate_random_bool(batch_size, 1, 0.0)
+        residential_state = generate_random_bool(batch_size, 1, 0.0)
+        scenario.set_topology(ut_loc, bs_loc, ut_orientations, bs_orientations,
+                                            ut_velocities, in_state, los=True, 
+                                            residential_state=residential_state)
+        ray_sampler.topology_updated_callback()
+        rays = ray_sampler(lsp)
+        TestRays.delays['sma']['los'] = tf.squeeze(rays.delays).numpy()
+        TestRays.powers['sma']['los'] = tf.squeeze(rays.powers).numpy()
+        TestRays.aoa['sma']['los'] = tf.squeeze(rays.aoa).numpy()
+        TestRays.aod['sma']['los'] = tf.squeeze(rays.aod).numpy()
+        TestRays.zoa['sma']['los'] = tf.squeeze(rays.zoa).numpy()
+        TestRays.zod['sma']['los'] = tf.squeeze(rays.zod).numpy()
+        TestRays.xpr['sma']['los'] = tf.squeeze(rays.xpr).numpy()
+        TestRays.num_clusters['sma']['los'] = 15
+        TestRays.los_aoa['sma']['los'] = scenario.los_aoa.numpy()
+        TestRays.los_aod['sma']['los'] = scenario.los_aod.numpy()
+        TestRays.los_zoa['sma']['los'] = scenario.los_zoa.numpy()
+        TestRays.los_zod['sma']['los'] = scenario.los_zod.numpy()
+        TestRays.mu_log_zsd['sma']['los'] = scenario.lsp_log_mean[:,0,0,6].numpy()
+
+        #### NLoS
+        in_state = generate_random_bool(batch_size, 1, 0.0)
+        residential_state = generate_random_bool(batch_size, 1, 0.0)
+        scenario.set_topology(ut_loc, bs_loc, ut_orientations, bs_orientations,
+                                            ut_velocities, in_state, los=False, 
+                                            residential_state=residential_state)
+        ray_sampler.topology_updated_callback()
+        rays = ray_sampler(lsp)
+        TestRays.delays['sma']['nlos'] = tf.squeeze(rays.delays).numpy()
+        TestRays.powers['sma']['nlos'] = tf.squeeze(rays.powers).numpy()
+        TestRays.aoa['sma']['nlos'] = tf.squeeze(rays.aoa).numpy()
+        TestRays.aod['sma']['nlos'] = tf.squeeze(rays.aod).numpy()
+        TestRays.zoa['sma']['nlos'] = tf.squeeze(rays.zoa).numpy()
+        TestRays.zod['sma']['nlos'] = tf.squeeze(rays.zod).numpy()
+        TestRays.xpr['sma']['nlos'] = tf.squeeze(rays.xpr).numpy()
+        TestRays.num_clusters['sma']['nlos'] = 14
+        TestRays.los_aoa['sma']['nlos'] = scenario.los_aoa.numpy()
+        TestRays.los_aod['sma']['nlos'] = scenario.los_aod.numpy()
+        TestRays.los_zoa['sma']['nlos'] = scenario.los_zoa.numpy()
+        TestRays.los_zod['sma']['nlos'] = scenario.los_zod.numpy()
+        TestRays.mu_log_zsd['sma']['nlos'] = scenario.lsp_log_mean[:,0,0,6].numpy()
+
+        #### O2I
+        in_state = generate_random_bool(batch_size, 1, 1.0)
+        residential_state = generate_random_bool(batch_size, 1, 0.0)
+        scenario.set_topology(ut_loc, bs_loc, ut_orientations, bs_orientations,
+                                            ut_velocities, in_state, 
+                                            residential_state=residential_state)
+        ray_sampler.topology_updated_callback()
+        rays = ray_sampler(lsp)
+        TestRays.delays['sma']['o2i'] = tf.squeeze(rays.delays).numpy()
+        TestRays.powers['sma']['o2i'] = tf.squeeze(rays.powers).numpy()
+        TestRays.aoa['sma']['o2i'] = tf.squeeze(rays.aoa).numpy()
+        TestRays.aod['sma']['o2i'] = tf.squeeze(rays.aod).numpy()
+        TestRays.zoa['sma']['o2i'] = tf.squeeze(rays.zoa).numpy()
+        TestRays.zod['sma']['o2i'] = tf.squeeze(rays.zod).numpy()
+        TestRays.xpr['sma']['o2i'] = tf.squeeze(rays.xpr).numpy()
+        TestRays.num_clusters['sma']['o2i'] = 14
+        TestRays.los_aoa['sma']['o2i'] = scenario.los_aoa.numpy()
+        TestRays.los_aod['sma']['o2i'] = scenario.los_aod.numpy()
+        TestRays.los_zoa['sma']['o2i'] = scenario.los_zoa.numpy()
+        TestRays.los_zod['sma']['o2i'] = scenario.los_zod.numpy()
+        TestRays.mu_log_zsd['sma']['o2i'] = scenario.lsp_log_mean[:,0,0,6].numpy()
+
+        #################### InHOpenOffice
+        TestRays.delays['inho'] = {}
+        TestRays.powers['inho'] = {}
+        TestRays.aoa['inho'] = {}
+        TestRays.aod['inho'] = {}
+        TestRays.zoa['inho'] = {}
+        TestRays.zod['inho'] = {}
+        TestRays.xpr['inho'] = {}
+        TestRays.num_clusters['inho'] = {}
+        TestRays.los_aoa['inho'] = {}
+        TestRays.los_aod['inho'] = {}
+        TestRays.los_zoa['inho'] = {}
+        TestRays.los_zod['inho'] = {}
+        TestRays.mu_log_zsd['inho'] = {}
+        scenario = channel.tr38901.InHOpenOfficeScenario(fc, "low",
+                                               ut_array, bs_array,
+                                               "downlink",
+                                               precision="double")
+        ray_sampler = channel.tr38901.RaysGenerator(scenario)
+
+        #### LoS
+        in_state = generate_random_bool(batch_size, 1, 0.0)
+        scenario.set_topology(ut_loc, bs_loc, ut_orientations, bs_orientations,
+                                            ut_velocities, in_state, los=True)
+        ray_sampler.topology_updated_callback()
+        rays = ray_sampler(lsp)
+        TestRays.delays['inho']['los'] = tf.squeeze(rays.delays).numpy()
+        TestRays.powers['inho']['los'] = tf.squeeze(rays.powers).numpy()
+        TestRays.aoa['inho']['los'] = tf.squeeze(rays.aoa).numpy()
+        TestRays.aod['inho']['los'] = tf.squeeze(rays.aod).numpy()
+        TestRays.zoa['inho']['los'] = tf.squeeze(rays.zoa).numpy()
+        TestRays.zod['inho']['los'] = tf.squeeze(rays.zod).numpy()
+        TestRays.xpr['inho']['los'] = tf.squeeze(rays.xpr).numpy()
+        TestRays.num_clusters['inho']['los'] = 15
+        TestRays.los_aoa['inho']['los'] = scenario.los_aoa.numpy()
+        TestRays.los_aod['inho']['los'] = scenario.los_aod.numpy()
+        TestRays.los_zoa['inho']['los'] = scenario.los_zoa.numpy()
+        TestRays.los_zod['inho']['los'] = scenario.los_zod.numpy()
+        TestRays.mu_log_zsd['inho']['los'] = scenario.lsp_log_mean[:,0,0,6].numpy()
+
+        #### NLoS
+        in_state = generate_random_bool(batch_size, 1, 0.0)
+        scenario.set_topology(ut_loc, bs_loc, ut_orientations, bs_orientations,
+                                            ut_velocities, in_state, los=False)
+        ray_sampler.topology_updated_callback()
+        rays = ray_sampler(lsp)
+        TestRays.delays['inho']['nlos'] = tf.squeeze(rays.delays).numpy()
+        TestRays.powers['inho']['nlos'] = tf.squeeze(rays.powers).numpy()
+        TestRays.aoa['inho']['nlos'] = tf.squeeze(rays.aoa).numpy()
+        TestRays.aod['inho']['nlos'] = tf.squeeze(rays.aod).numpy()
+        TestRays.zoa['inho']['nlos'] = tf.squeeze(rays.zoa).numpy()
+        TestRays.zod['inho']['nlos'] = tf.squeeze(rays.zod).numpy()
+        TestRays.xpr['inho']['nlos'] = tf.squeeze(rays.xpr).numpy()
+        TestRays.num_clusters['inho']['nlos'] = 19
+        TestRays.los_aoa['inho']['nlos'] = scenario.los_aoa.numpy()
+        TestRays.los_aod['inho']['nlos'] = scenario.los_aod.numpy()
+        TestRays.los_zoa['inho']['nlos'] = scenario.los_zoa.numpy()
+        TestRays.los_zod['inho']['nlos'] = scenario.los_zod.numpy()
+        TestRays.mu_log_zsd['inho']['nlos'] = scenario.lsp_log_mean[:,0,0,6].numpy()
+
         ###### General
         TestRays.d_2d = scenario.distance_2d[0,0,0].numpy()
 
-    @channel_test_on_models(('rma', 'umi', 'uma'), ('los', 'nlos', 'o2i'))
+    @channel_test_on_models(('rma', 'umi', 'uma', 'sma', 'inho'),
+                            ('los', 'nlos', 'o2i'), exclude={('inho', 'o2i')})
     def test_delays(self, model, submodel):
         """Test ray generation: Delays"""
         num_clusters = TestRays.num_clusters[model][submodel]
@@ -356,7 +503,8 @@ class TestRays(unittest.TestCase):
         D,_ = kstest(tau,ref_tau)
         self.assertLessEqual(D, TestRays.MAX_ERR, f"{model}:{submodel}")
 
-    @channel_test_on_models(('rma', 'umi', 'uma'), ('los', 'nlos', 'o2i'))
+    @channel_test_on_models(('rma', 'umi', 'uma', 'sma', 'inho'),
+                            ('los', 'nlos', 'o2i'), exclude={('inho', 'o2i')})
     def test_powers(self, model, submodel):
         """Test ray generation: Powers"""
         num_clusters = TestRays.num_clusters[model][submodel]
@@ -370,7 +518,8 @@ class TestRays(unittest.TestCase):
         D,_ = kstest(ref_p,p)
         self.assertLessEqual(D, TestRays.MAX_ERR, f"{model}:{submodel}")
 
-    @channel_test_on_models(('rma', 'umi', 'uma'), ('los', 'nlos', 'o2i'))
+    @channel_test_on_models(('rma', 'umi', 'uma', 'sma', 'inho'),
+                            ('los', 'nlos', 'o2i'), exclude={('inho', 'o2i')})
     def test_aoa(self, model, submodel):
         """Test ray generation: AoA"""
         num_clusters = TestRays.num_clusters[model][submodel]
@@ -390,7 +539,8 @@ class TestRays(unittest.TestCase):
         D,_ = kstest(ref_samples, samples)
         self.assertLessEqual(D, TestRays.MAX_ERR, f"{model}:{submodel}")
 
-    @channel_test_on_models(('rma', 'umi', 'uma'), ('los', 'nlos', 'o2i'))
+    @channel_test_on_models(('rma', 'umi', 'uma', 'sma', 'inho'),
+                            ('los', 'nlos', 'o2i'), exclude={('inho', 'o2i')})
     def test_aod(self, model, submodel):
         """Test ray generation: AoD"""
         num_clusters = TestRays.num_clusters[model][submodel]
@@ -410,7 +560,8 @@ class TestRays(unittest.TestCase):
         D,_ = kstest(ref_samples, samples)
         self.assertLessEqual(D, TestRays.MAX_ERR, f"{model}:{submodel}")
 
-    @channel_test_on_models(('rma', 'umi', 'uma'), ('los', 'nlos', 'o2i'))
+    @channel_test_on_models(('rma', 'umi', 'uma', 'sma', 'inho'),
+                            ('los', 'nlos', 'o2i'), exclude={('inho', 'o2i')})
     def test_zoa(self, model, submodel):
         """Test ray generation: ZoA"""
         num_clusters = TestRays.num_clusters[model][submodel]
@@ -430,7 +581,8 @@ class TestRays(unittest.TestCase):
         D,_ = kstest(ref_samples, samples)
         self.assertLessEqual(D, TestRays.MAX_ERR, f"{model}:{submodel}")
 
-    @channel_test_on_models(('rma', 'umi', 'uma'), ('los', 'nlos', 'o2i'))
+    @channel_test_on_models(('rma', 'umi', 'uma', 'sma', 'inho'),
+                            ('los', 'nlos', 'o2i'), exclude={('inho', 'o2i')})
     def test_zod(self, model, submodel):
         """Test ray generation: ZoD"""
         num_clusters = TestRays.num_clusters[model][submodel]
@@ -438,6 +590,7 @@ class TestRays(unittest.TestCase):
         fc = TestRays.CARRIER_FREQUENCY
         d_2d = TestRays.d_2d
         h_ut = TestRays.H_UT
+        h_bs = TestRays.H_BS
         mu_log_zod = TestRays.mu_log_zsd[model][submodel]
         k = None
         if submodel == 'los':
@@ -447,7 +600,7 @@ class TestRays(unittest.TestCase):
         _, ref_p_angles = powers(model, submodel, batch_size, num_clusters,
                     unscaled_tau, TestRays.ds, TestRays.k)
         ref_p_angles = ref_p_angles[:,:num_clusters]
-        offset = zod_offset(model, submodel, fc, d_2d, h_ut)
+        offset = zod_offset(model, submodel, fc, d_2d, h_ut, h_bs)
         ref_samples = zod(model, submodel, batch_size, num_clusters,
             TestRays.zsd, ref_p_angles, TestRays.los_zod[model][submodel],
             offset, mu_log_zod, k)
@@ -456,7 +609,8 @@ class TestRays(unittest.TestCase):
         D,_ = kstest(ref_samples, samples)
         self.assertLessEqual(D, TestRays.MAX_ERR, f"{model}:{submodel}")
 
-    @channel_test_on_models(('rma', 'umi', 'uma'), ('los', 'nlos', 'o2i'))
+    @channel_test_on_models(('rma', 'umi', 'uma', 'sma', 'inho'),
+                            ('los', 'nlos', 'o2i'), exclude={('inho', 'o2i')})
     def test_xpr(self, model, submodel):
         """Test ray generation: XPR"""
         num_clusters = TestRays.num_clusters[model][submodel]

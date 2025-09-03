@@ -272,6 +272,8 @@ class TestLSP(unittest.TestCase):
 
         TestLSP.los_prob['inho'] = scenario.los_probability.numpy()
 
+        TestLSP.inho_d_2d_in = scenario.distance_2d_in.numpy()
+
         ####### SMa
         TestLSP.lsp_samples['sma'] = {}
         TestLSP.zod_offset['sma'] = {}
@@ -289,7 +291,7 @@ class TestLSP(unittest.TestCase):
         in_state = generate_random_bool(batch_size, nb_ut, 0.0)
         residential_state = generate_random_bool(batch_size, nb_ut, 0.0)
         scenario.set_topology(ut_loc, bs_loc, ut_orientations, bs_orientations,
-                              ut_velocities, in_state, True, None, residential_state)
+                              ut_velocities, in_state, True, residential_state=residential_state)
         lsp_sampler.topology_updated_callback()
         TestLSP.lsp_samples['sma']['los'] = lsp_sampler()
         TestLSP.zod_offset['sma']['los'] = scenario.zod_offset
@@ -299,7 +301,7 @@ class TestLSP(unittest.TestCase):
         in_state = generate_random_bool(batch_size, nb_ut, 0.0)
         residential_state = generate_random_bool(batch_size, nb_ut, 0.0)
         scenario.set_topology(ut_loc, bs_loc, ut_orientations, bs_orientations,
-                              ut_velocities, in_state, False, None, residential_state)
+                              ut_velocities, in_state, False, residential_state=residential_state)
         lsp_sampler.topology_updated_callback()
         TestLSP.lsp_samples['sma']['nlos'] = lsp_sampler()
         TestLSP.zod_offset['sma']['nlos'] = scenario.zod_offset
@@ -309,13 +311,16 @@ class TestLSP(unittest.TestCase):
         in_state = generate_random_bool(batch_size, nb_ut, 1.0)
         residential_state = generate_random_bool(batch_size, nb_ut, 0.0)
         scenario.set_topology(ut_loc, bs_loc, ut_orientations, bs_orientations,
-                              ut_velocities, in_state, None, None, residential_state)
+                              ut_velocities, in_state, None, residential_state=residential_state)
         lsp_sampler.topology_updated_callback()
         TestLSP.lsp_samples['sma']['o2i'] = lsp_sampler()
         TestLSP.zod_offset['sma']['o2i'] = scenario.zod_offset
         TestLSP.pathlosses['sma']['o2i-low'] = lsp_sampler.sample_pathloss()[:,0,:]
 
         TestLSP.los_prob['sma'] = scenario.los_probability.numpy()
+
+        TestLSP.sma_w = 10.
+        TestLSP.sma_h = 10.
 
         # Sample pathlosses with high O2I loss model. Only with UMi and UMa
         ####### SMa-high
@@ -330,7 +335,7 @@ class TestLSP(unittest.TestCase):
         in_state = generate_random_bool(batch_size, nb_ut, 1.0)
         residential_state = generate_random_bool(batch_size, nb_ut, 0.0)
         scenario.set_topology(ut_loc, bs_loc, ut_orientations, bs_orientations,
-                              ut_velocities, in_state, None, None, residential_state)
+                              ut_velocities, in_state, None, residential_state=residential_state)
         lsp_sampler.topology_updated_callback()
         TestLSP.pathlosses['sma']['o2i-high'] = lsp_sampler.sample_pathloss()[:,0,:]
 
@@ -346,7 +351,7 @@ class TestLSP(unittest.TestCase):
         in_state = generate_random_bool(batch_size, nb_ut, 1.0)
         residential_state = generate_random_bool(batch_size, nb_ut, 0.0)
         scenario.set_topology(ut_loc, bs_loc, ut_orientations, bs_orientations,
-                              ut_velocities, in_state, None, None, residential_state)
+                              ut_velocities, in_state, None, residential_state=residential_state)
         lsp_sampler.topology_updated_callback()
         TestLSP.pathlosses['sma']['o2i-low-A'] = lsp_sampler.sample_pathloss()[:,0,:]
 
@@ -600,8 +605,13 @@ class TestLSP(unittest.TestCase):
     def test_los_probability(self, model, submodel):
         """Test LoS probability"""
         d_2d_out = TestLSP.d_2d_out
+        if model == 'inho':
+            d_2d_in = TestLSP.inho_d_2d_in
+        else:
+            d_2d_in = TestLSP.d_2d_in
         h_ut = TestLSP.H_UT
-        los_prob_ref = los_probability(model, d_2d_out, h_ut)
+        h_bs = TestLSP.H_BS
+        los_prob_ref = los_probability(model, d_2d_out, h_ut, h_bs, d_2d_in)
         los_prob = TestLSP.los_prob[model]
         max_err = np.max(np.abs(los_prob_ref-los_prob))
         self.assertLessEqual(max_err, TestLSP.MAX_ERR_LOS_PROB,
@@ -614,8 +624,9 @@ class TestLSP(unittest.TestCase):
         d_2d = self.d_2d
         fc = TestLSP.CARRIER_FREQUENCY
         h_ut = TestLSP.H_UT
+        h_bs = TestLSP.H_BS
         samples = self.zod_offset[model][submodel]
-        samples_ref = zod_offset(model, submodel, fc, d_2d, h_ut)
+        samples_ref = zod_offset(model, submodel, fc, d_2d, h_ut, h_bs)
         max_err = np.max(np.abs(samples-samples_ref))
         self.assertLessEqual(max_err, TestLSP.MAX_ERR_ZOD_OFFSET,
                                 f"{model}:{submodel}")

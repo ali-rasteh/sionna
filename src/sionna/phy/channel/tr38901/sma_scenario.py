@@ -1,5 +1,5 @@
 #
-# SPDX-FileCopyrightText: Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2025 SHARP CORPORATION & NEW YORK UNIVERSITY(NYU). All rights reserved.
 # SPDX-License-Identifier: Apache-2.0#
 """3GPP TR39.801 suburban macrocell (SMa) channel model"""
 
@@ -251,7 +251,16 @@ class SMaScenario(SystemLevelScenario):
         log_std_asa = self.get_param("sigmaASA")
         # SF. Given in dB in the 3GPP tables, hence the division by 10
         # O2I and NLoS cases just require the use of a predefined value
-        log_std_sf = self.get_param("sigmaSF")/10.0
+        log_std_sf_o2i_nlos = self.get_param("sigmaSF")/10.0
+        # For LoS, two possible scenarion depending on the 2D location of the
+        # user
+        distance_breakpoint = (2.*PI*h_bs*h_ut*self.carrier_frequency/
+            SPEED_OF_LIGHT)
+        log_std_sf_los=tf.where(tf.math.less(distance_2d, distance_breakpoint),
+            self.get_param("sigmaSF1")/10.0, self.get_param("sigmaSF2")/10.0)
+        # Use the correct SF STD according to the user scenario: NLoS/O2I, or
+        # LoS
+        log_std_sf = tf.where(self.los, log_std_sf_los, log_std_sf_o2i_nlos)
         # K. Given in dB in the 3GPP tables, hence the division by 10.
         log_std_k = self.get_param("sigmaK")/10.0
         # ZSA
