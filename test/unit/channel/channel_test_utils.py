@@ -430,6 +430,58 @@ def log10K_dB(model, submodel):
         if submodel == 'los' : return (7.0, 4.0)
         elif submodel == 'nlos' : return None
 
+def log10ED(model, submodel):
+    r"""
+    Return the mean and standard deviation of log10(ED)
+
+    Input:
+    ------
+    model : str
+        One of 'rma', 'umi', or 'uma'
+
+    submodel : str
+        One of 'los', 'nlos', 'o2i'
+
+    d_2d: float
+        2D distance [m]
+
+    fc : float
+        Carrier frequency [Hz]
+
+    h_bs: float
+        BS height [m]
+
+    h_ut : float
+        UT height [m]
+
+    Output
+    ------
+    log10_mu : float
+        Mean in the log10 domain
+
+    log10_std : float
+        Standard deviation in the log10 domain
+    """
+    if model == 'rma':
+        if submodel == 'los' : return None
+        elif submodel == 'nlos' : return (-8.33, 0.26)
+        elif submodel == 'o2i' : return None
+    elif model == 'umi':
+        if submodel == 'los' : return None
+        elif submodel == 'nlos' : return (-7.5, 0.5)
+        elif submodel == 'o2i' : return None
+    elif model == 'uma':
+        if submodel == 'los' : return None
+        elif submodel == 'nlos' : return (-7.4, 0.2)
+        elif submodel == 'o2i' : return None
+    elif model == 'sma':
+        if submodel == 'los' : return None
+        elif submodel == 'nlos' : return (-7.702, 0.4)
+        elif submodel == 'o2i' : return None
+    elif model == 'inho':
+        if submodel == 'los' : return None
+        elif submodel == 'nlos' : return (-8.6, 0.1)
+
 def log10ZSD(model, submodel, d_2d, fc, h_bs, h_ut):
     r"""
     Return the mean and standard deviation of log10(ZSD) [deg]
@@ -818,6 +870,43 @@ def corr_dist_k(model, submodel):
         if submodel == 'los' : return 10
     elif model == 'inho':
         if submodel == 'los' : return 4
+
+def corr_dist_ed(model, submodel):
+    r"""
+    Return the correlation distance of LSP ED for ``model`` and ``submodel``.
+
+    Input
+    ------
+    model : str
+        One of 'rma', 'umi', or 'uma'
+
+    submodel : str
+        One of 'los', 'nlos', 'o2i'
+
+    Output
+    -------
+    : float
+        Correlation distance
+    """
+    if model == 'umi':
+        if submodel == 'los' : return None
+        elif submodel == 'nlos' : return 15
+        elif submodel == 'o2i' : return None
+    elif model == 'uma':
+        if submodel == 'los' : return None
+        elif submodel == 'nlos' : return 50
+        elif submodel == 'o2i' : return None
+    elif model == 'rma':
+        if submodel == 'los' : return None
+        elif submodel == 'nlos' : return 50
+        elif submodel == 'o2i' : return None
+    elif model == 'sma':
+        if submodel == 'los' : return None
+        elif submodel == 'nlos' : return 50
+        elif submodel == 'o2i' : return None
+    elif model == 'inho':
+        if submodel == 'los' : return None
+        elif submodel == 'nlos' : return 10
 
 def corr_dist_zsa(model, submodel):
     r"""

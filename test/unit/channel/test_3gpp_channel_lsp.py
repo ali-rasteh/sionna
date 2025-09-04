@@ -503,6 +503,15 @@ class TestLSP(unittest.TestCase):
         D,_ = kstest(samples, norm.cdf, args=(mu, std))
         self.assertLessEqual(D, TestLSP.MAX_ERR_KS, f"{model}:{submodel}")
 
+    @channel_test_on_models(('rma', 'umi', 'uma', 'sma', 'inho'), ('nlos',))
+    def test_ed_dist(self, model, submodel):
+        """Test the distribution of LSP ED"""
+        samples = TestLSP.lsp_samples[model][submodel].ed[:,0,0].numpy()
+        samples = np.log10(samples)
+        mu, std = log10ED(model, submodel)
+        D,_ = kstest(samples, norm.cdf, args=(mu, std))
+        self.assertLessEqual(D, TestLSP.MAX_ERR_KS, f"{model}:{submodel}")
+
     @channel_test_on_models(('rma', 'umi', 'uma', 'sma', 'inho'),
                             ('los', 'nlos', 'o2i'), exclude={('inho', 'o2i')})
     def test_cross_correlation(self, model, submodel):
@@ -558,6 +567,9 @@ class TestLSP(unittest.TestCase):
         zsa_samples = np.log10(zsa_samples.numpy())
         zsd_samples = TestLSP.lsp_samples[model][submodel].zsd[:,0,:]
         zsd_samples = np.log10(zsd_samples.numpy())
+        if submodel == 'nlos':
+            ed_samples = TestLSP.lsp_samples[model][submodel].ed[:,0,:]
+            ed_samples = np.log10(ed_samples.numpy())
         #
         C_ds_measured = np.corrcoef(ds_samples.T)[0]
         C_asd_measured = np.corrcoef(asd_samples.T)[0]
@@ -567,6 +579,8 @@ class TestLSP(unittest.TestCase):
             C_k_measured = np.corrcoef(k_samples.T)[0]
         C_zsa_measured = np.corrcoef(zsa_samples.T)[0]
         C_zsd_measured = np.corrcoef(zsd_samples.T)[0]
+        if submodel == 'nlos':
+            C_ed_measured = np.corrcoef(ed_samples.T)[0]
         #
         C_ds = np.exp(-d_2d_ut/corr_dist_ds(model, submodel))
         C_asd = np.exp(-d_2d_ut/corr_dist_asd(model, submodel))
@@ -576,6 +590,8 @@ class TestLSP(unittest.TestCase):
             C_k = np.exp(-d_2d_ut/corr_dist_k(model, submodel))
         C_zsa = np.exp(-d_2d_ut/corr_dist_zsa(model, submodel))
         C_zsd = np.exp(-d_2d_ut/corr_dist_zsd(model, submodel))
+        if submodel == 'nlos':
+            C_ed = np.exp(-d_2d_ut/corr_dist_ed(model, submodel))
         #
         ds_max_err = np.max(np.abs(C_ds_measured - C_ds))
         self.assertLessEqual(ds_max_err, TestLSP.MAX_ERR_SPAT_CORR,
@@ -598,6 +614,10 @@ class TestLSP(unittest.TestCase):
                                 f"{model}:{submodel}")
         zsd_max_err = np.max(np.abs(C_zsd_measured - C_zsd))
         self.assertLessEqual(zsd_max_err, TestLSP.MAX_ERR_SPAT_CORR,
+                                f"{model}:{submodel}")
+        if submodel == 'nlos':
+            ed_max_err = np.max(np.abs(C_ed_measured - C_ed))
+            self.assertLessEqual(ed_max_err, TestLSP.MAX_ERR_SPAT_CORR,
                                 f"{model}:{submodel}")
 
     # Submodel is not needed for LoS probability

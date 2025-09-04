@@ -124,7 +124,7 @@ def compute_sinr_numpy(num_streams_per_rx,
 
 def wraparound_dist_np(grid, point):
     """ non-TensorFlow wraparound distance function between a point and a
-    hexagon center within a spiral hexagonal grid """
+    cell center within a grid (hexagon or square) """
     dist_to_bs = []
     for cell in grid.grid:
         # (x,y) coordinates of the centers of the 6 neighbors + current hexagon

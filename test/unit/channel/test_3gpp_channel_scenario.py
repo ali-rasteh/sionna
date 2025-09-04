@@ -45,13 +45,13 @@ class TestScenario(unittest.TestCase):
 
         # UT and BS arrays have no impact on LSP
         # However, these are needed to instantiate the model
-        bs_array = channel.tr38901.PanelArray(num_rows_per_panel=2,
+        self.bs_array = channel.tr38901.PanelArray(num_rows_per_panel=2,
                                               num_cols_per_panel=2,
                                               polarization='dual',
                                               polarization_type='VH',
                                               antenna_pattern='38.901',
                                               carrier_frequency=fc)
-        ut_array = channel.tr38901.PanelArray(num_rows_per_panel=1,
+        self.ut_array = channel.tr38901.PanelArray(num_rows_per_panel=1,
                                               num_cols_per_panel=1,
                                               polarization='dual',
                                               polarization_type='VH',
@@ -64,8 +64,8 @@ class TestScenario(unittest.TestCase):
         bs_orientations = tf.zeros([batch_size, nb_ut])
         ut_velocities = tf.zeros([batch_size, nb_ut])
 
-        self.scenario = channel.tr38901.RMaScenario(fc, ut_array,
-                                                    bs_array, "uplink")
+        self.scenario = channel.tr38901.RMaScenario(fc, self.ut_array,
+                                                    self.bs_array, "uplink")
 
         ut_loc = generate_random_loc(batch_size, nb_ut, (100,2000),
                                      (100,2000), (h_ut, h_ut))
@@ -129,3 +129,149 @@ class TestScenario(unittest.TestCase):
         param_tensor = self.scenario.get_param('muDSc').numpy()
         max_err = np.max(np.abs(param_tensor-param_tensor_ref))
         self.assertLessEqual(max_err, 1e-6)
+    
+    def test_calibration_params(self):
+        """Test the calibration parameters get method and
+        corresponding classes"""
+        # Test if the calibration parameters are correctly acquired
+        # from the scenario class. The values are those of the
+        # 3GPP TR 38.901 V18.0.
+
+        rdtype = tf.float32
+        parameters_nearfield_ref = channel.tr38901.ScenarioCalibrationParameters(
+                        min_bs_ut_dist = tf.constant(35., rdtype),
+                        isd = tf.constant(1732., rdtype),
+                        bs_height = tf.constant(35., rdtype),
+                        min_ut_height = tf.constant(1.5, rdtype),
+                        max_ut_height = tf.constant(1.5, rdtype),
+                        indoor_probability = tf.constant(0.8, rdtype),
+                        min_ut_velocity = tf.constant(3./3.6, rdtype),
+                        max_ut_velocity = tf.constant(3./3.6, rdtype),
+                    )
+        
+        parameters_farfield_ref = channel.tr38901.ScenarioCalibrationParameters(
+                        min_bs_ut_dist = tf.constant(35., rdtype),
+                        isd = tf.constant(1732., rdtype),
+                        bs_height = tf.constant(35., rdtype),
+                        min_ut_height = tf.constant(1.5, rdtype),
+                        max_ut_height = tf.constant(1.5, rdtype),
+                        indoor_probability = tf.constant(0.8, rdtype),
+                        min_ut_velocity = tf.constant(3./3.6, rdtype),
+                        max_ut_velocity = tf.constant(3./3.6, rdtype),
+                    )
+        
+        for nearfield in [True, False]:
+            parameters = self.scenario.get_calibration_parameters(nearfield=nearfield)
+            if nearfield:
+                parameters_ref = parameters_nearfield_ref
+            else:
+                parameters_ref = parameters_farfield_ref
+            
+            self.assertIsInstance(parameters, channel.tr38901.ScenarioCalibrationParameters)
+            self.assertEqual(parameters.min_bs_ut_dist.numpy(),
+                             parameters_ref.min_bs_ut_dist.numpy())
+            self.assertEqual(parameters.isd.numpy(),
+                             parameters_ref.isd.numpy())
+            self.assertEqual(parameters.bs_height.numpy(),
+                             parameters_ref.bs_height.numpy())
+            self.assertEqual(parameters.min_ut_height.numpy(),
+                             parameters_ref.min_ut_height.numpy())
+            self.assertEqual(parameters.max_ut_height.numpy(),
+                             parameters_ref.max_ut_height.numpy())
+            self.assertEqual(parameters.indoor_probability.numpy(),
+                             parameters_ref.indoor_probability.numpy())
+            self.assertEqual(parameters.min_ut_velocity.numpy(),
+                             parameters_ref.min_ut_velocity.numpy())
+            self.assertEqual(parameters.max_ut_velocity.numpy(),
+                             parameters_ref.max_ut_velocity.numpy())
+            self.assertEqual(parameters.min_ut_velocity_indoor,
+                             parameters_ref.min_ut_velocity_indoor)
+            self.assertEqual(parameters.max_ut_velocity_indoor,
+                             parameters_ref.max_ut_velocity_indoor)
+            self.assertEqual(parameters.residential_probability,
+                             parameters_ref.residential_probability)
+            
+    def test_release_numbers(self):
+        """Test different release numbers"""
+        release_numbers = ["18", "19"]
+
+        scenarios_dict = {
+            "uma": channel.tr38901.UMaScenario,
+            "umi": channel.tr38901.UMiScenario,
+            "inho": channel.tr38901.InHOpenOfficeScenario,
+        }
+        for release_number in release_numbers:
+            for scenario_name, scenario_class in scenarios_dict.items():
+                batch_size = TestScenario.BATCH_SIZE
+                nb_bs = TestScenario.NB_BS
+                nb_ut = TestScenario.NB_UT
+                fc = TestScenario.CARRIER_FREQUENCY
+                h_ut = TestScenario.H_UT
+                h_bs = TestScenario.H_BS
+
+                ut_orientations = tf.zeros([batch_size, nb_ut])
+                bs_orientations = tf.zeros([batch_size, nb_ut])
+                ut_velocities = tf.zeros([batch_size, nb_ut])
+
+                params_dics = {"carrier_frequency": fc,
+                               "ut_array": self.ut_array,
+                               "bs_array": self.bs_array,
+                               "direction": "uplink",
+                               "release_number": release_number}
+                if scenario_name not in ["rma"]:
+                    params_dics["o2i_model"] = "low"
+                self.scenario = scenario_class(**params_dics)
+                
+                ut_loc = generate_random_loc(batch_size, nb_ut, (100,2000),
+                                            (100,2000), (h_ut, h_ut))
+                bs_loc = generate_random_loc(batch_size, nb_bs, (0,100),
+                                                    (0,100), (h_bs, h_bs))
+
+                in_state = generate_random_bool(batch_size, nb_ut, 0.5)
+                self.scenario.set_topology(ut_loc, bs_loc, ut_orientations,
+                                        bs_orientations, ut_velocities, in_state)
+
+                self.assertEqual(self.scenario.release_number, release_number)
+
+    def test_calibration_mode(self):
+        """Test different calibration modes"""
+        calibration_modes = [True, False]
+
+        scenarios_dict = {
+            "rma": channel.tr38901.RMaScenario,
+            "uma": channel.tr38901.UMaScenario,
+            "umi": channel.tr38901.UMiScenario,
+            "inho": channel.tr38901.InHOpenOfficeScenario,
+        }
+        for calibration_mode in calibration_modes:
+            for scenario_name, scenario_class in scenarios_dict.items():
+                batch_size = TestScenario.BATCH_SIZE
+                nb_bs = TestScenario.NB_BS
+                nb_ut = TestScenario.NB_UT
+                fc = TestScenario.CARRIER_FREQUENCY
+                h_ut = TestScenario.H_UT
+                h_bs = TestScenario.H_BS
+
+                ut_orientations = tf.zeros([batch_size, nb_ut])
+                bs_orientations = tf.zeros([batch_size, nb_ut])
+                ut_velocities = tf.zeros([batch_size, nb_ut])
+
+                params_dics = {"carrier_frequency": fc,
+                               "ut_array": self.ut_array,
+                               "bs_array": self.bs_array,
+                               "direction": "uplink",
+                               "calibration_mode": calibration_mode}
+                if scenario_name not in ["rma"]:
+                    params_dics["o2i_model"] = "low"
+                self.scenario = scenario_class(**params_dics)
+                
+                ut_loc = generate_random_loc(batch_size, nb_ut, (100,2000),
+                                            (100,2000), (h_ut, h_ut))
+                bs_loc = generate_random_loc(batch_size, nb_bs, (0,100),
+                                                    (0,100), (h_bs, h_bs))
+
+                in_state = generate_random_bool(batch_size, nb_ut, 0.5)
+                self.scenario.set_topology(ut_loc, bs_loc, ut_orientations,
+                                        bs_orientations, ut_velocities, in_state)
+
+                self.assertEqual(self.scenario.calibration_mode, calibration_mode)

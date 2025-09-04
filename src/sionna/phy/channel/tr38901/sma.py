@@ -1,5 +1,5 @@
 #
-# SPDX-FileCopyrightText: Copyright (c) 2025 SHARP CORPORATION & NEW YORK UNIVERSITY(NYU). All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2025 SHARP LABORATORIES OF AMERICA & NEW YORK UNIVERSITY (NYU). All rights reserved.
 # SPDX-License-Identifier: Apache-2.0#
 """Suburban macrocell (SMa) channel model from 3GPP TR38.901 specification"""
 

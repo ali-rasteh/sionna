@@ -57,7 +57,7 @@ class RMaScenario(SystemLevelScenario):
     def __init__(self, carrier_frequency, ut_array, bs_array,
         direction, enable_pathloss=True, enable_shadow_fading=True,
         average_street_width=20.0, average_building_height=5.0,
-        precision=None):
+        calibration_mode=False, precision=None):
 
         assert carrier_frequency > 0.5e9 and carrier_frequency < 30e9, \
             "RMa scenario is only defined for carrier frequencies > 0.5 GHz and < 30 GHz"
@@ -65,7 +65,7 @@ class RMaScenario(SystemLevelScenario):
         # Only the low-loss O2I model if available for RMa.
         super().__init__(carrier_frequency, 'low', ut_array, bs_array,
             direction, enable_pathloss, enable_shadow_fading,
-            precision=precision)
+            calibration_mode=calibration_mode, precision=precision)
 
         # Average street width [m]
         self._average_street_width = tf.constant(average_street_width,

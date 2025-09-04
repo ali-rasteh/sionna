@@ -38,6 +38,9 @@ class TestChannelCoefficientsGenerator(unittest.TestCase):
     # Sampling frequency
     SAMPLING_FREQUENCY = 20e6
 
+    # Whether to use a UT model or a simple panel array for the UT
+    USE_UTMODEL = False
+
     def setUp(self):
 
         fc = TestChannelCoefficientsGenerator.CARRIER_FREQUENCY
@@ -51,13 +54,24 @@ class TestChannelCoefficientsGenerator(unittest.TestCase):
                                                    antenna_pattern='38.901',
                                                    carrier_frequency=fc,
                                                    precision="double")
-        self.rx_array = channel.tr38901.PanelArray(num_rows_per_panel=1,
-                                                   num_cols_per_panel=1,
-                                                   polarization='dual',
-                                                   polarization_type='VH',
-                                                   antenna_pattern='38.901',
-                                                   carrier_frequency=fc,
-                                                   precision="double")
+        
+        if self.USE_UTMODEL:
+            self.rx_array = channel.tr38901.UtArray(polarization='dual',
+                                                    polarization_type='VH',
+                                                    carrier_frequency=fc,
+                                                    antenna_pattern='38.901-ut',
+                                                    device_type="handheld",
+                                                    location_indices=[1],
+                                                    precision="double")
+        else:
+            self.rx_array = channel.tr38901.PanelArray(num_rows_per_panel=1,
+                                                    num_cols_per_panel=1,
+                                                    polarization='dual',
+                                                    polarization_type='VH',
+                                                    antenna_pattern='38.901',
+                                                    carrier_frequency=fc,
+                                                    precision="double")
+        
 
         self.ccg = channel.tr38901.ChannelCoefficientsGenerator(
             fc,
@@ -859,3 +873,8 @@ class TestChannelCoefficientsGenerator(unittest.TestCase):
         self.assertLessEqual(max_err, err_tol)
         max_err = self.max_rel_err(delays_nlos_ref, delays_nlos)
         self.assertLessEqual(max_err, err_tol)
+
+
+class TestChannelCoefficientsGenerator_UTModel(TestChannelCoefficientsGenerator):
+    USE_UTMODEL = True
+
