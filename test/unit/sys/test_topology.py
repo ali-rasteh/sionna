@@ -5,7 +5,7 @@
 import unittest
 import numpy as np
 import tensorflow as tf
-from sionna.sys.topology import HexGrid
+from sionna.sys.topology import HexGrid, IndoorOfficeGrid
 from sionna.phy.channel.tr38901 import TDL
 from sionna.phy.ofdm import ResourceGrid, ResourceGridMapper, OFDMModulator, OFDMDemodulator, LSChannelEstimator
 from sionna.phy import config, dtypes
@@ -151,6 +151,165 @@ class TestHexagonalGrid(unittest.TestCase):
         for mode, fun in fun_dict.items():
             ut_loc, cell_mirror_coord, wrap_dist_tf = fun(
                 isd, num_rings,
+                batch_size, num_ut_per_sector,
+                min_bs_ut_dist, min_ut_height, max_ut_height)
+            
+            # [..., 2]
+            ut_loc = flatten_dims(ut_loc, num_dims=4, axis=0).numpy()
+            # [..., num_cells, 2]
+            cell_mirror_coord = flatten_dims(cell_mirror_coord, num_dims=4, axis=0).numpy()
+            # [..., num_cells]
+            wrap_dist_tf = flatten_dims(wrap_dist_tf, num_dims=4, axis=0).numpy()
+
+            # Compare wraparound distance against the Numpy version
+            for ut in range(ut_loc.shape[0]):
+                wrap_dist_np_vec = wraparound_dist_np(grid, ut_loc[ut, :])
+                for cell in range(grid.num_cells):
+                    wrap_dist_np1 = np.linalg.norm(cell_mirror_coord[ut, cell, :] - ut_loc[ut, :])
+                    self.assertAlmostEqual(wrap_dist_np_vec[cell], wrap_dist_np1, delta=1e-5)
+                    self.assertAlmostEqual(wrap_dist_np_vec[cell], wrap_dist_tf[ut, cell], delta=1e-5)
+
+class TestIndoorOfficeGrid(unittest.TestCase):
+    
+    def test_square_grid(self):
+        """ Checks that the centers are aligned with pre-computed ones """
+        grid = IndoorOfficeGrid(cell_radius=5., room_length=73, room_width=73, center_loc=(-2,3), precision='double')
+        grid.cell_radius = 3
+        grid.room_length = 25
+        grid.room_width = 16
+        grid.center_loc = (0, 0)
+        centers_precomputed = np.array([(-8.48528123, -4.24264061),
+                                (-8.48528123,  0.        ),
+                                (-8.48528123,  4.24264061),
+                                (-4.24264061, -4.24264061),
+                                (-4.24264061,  0.        ),
+                                (-4.24264061,  4.24264061),
+                                ( 0.        , -4.24264061),
+                                ( 0.        ,  0.        ),
+                                ( 0.        ,  4.24264061),
+                                ( 4.24264061, -4.24264061),
+                                ( 4.24264061,  0.        ),
+                                ( 4.24264061,  4.24264061),
+                                ( 8.48528123, -4.24264061),
+                                ( 8.48528123,  0.        ),
+                                ( 8.48528123,  4.24264061)])
+        
+        centers = grid.cell_loc.numpy()[:, :2]
+        is_found = np.zeros(len(centers))
+        for c in centers:
+            dist_c_centers = np.linalg.norm(np.array([c]) - centers_precomputed, axis=1)
+            closest_center = np.argmin(dist_c_centers)
+            self.assertAlmostEqual(dist_c_centers[closest_center], 0, delta=1e-5)  # center is found among pre-computed ones
+            is_found[closest_center] = 1
+        self.assertTrue(np.sum(is_found)==len(is_found))  # all centers have been found
+
+    def test_drop_uts(self):
+        """
+        Validate ut locations from drop_uts method
+        """
+        isd = 50
+        bs_height = 10
+        room_length = 200
+        room_width = 180
+
+        grid = IndoorOfficeGrid(isd=isd,
+                    room_length=room_length,
+                    room_width=room_width,
+                    cell_height=bs_height,
+                    precision='double')
+        # Drop users
+
+        num_ut_per_sector = 100
+        
+        min_bs_ut_dist_vec = [20, 20, 20]
+        max_bs_ut_dist_vec = [30, 35, 40]
+        min_ut_height_vec = [1, 9, 12]
+        max_ut_height_vec = [2, 11, 15]
+
+        assert len(np.unique([len(min_bs_ut_dist_vec),
+                              len(min_ut_height_vec),
+                              len(max_ut_height_vec)])) == 1
+
+        for ii in range(len(min_bs_ut_dist_vec)):
+            # [batch_size, num_cells, 3, num_ut_per_sector, 3]
+            ut_loc, *_ = grid(1,
+                            num_ut_per_sector,
+                            min_bs_ut_dist_vec[ii],
+                            max_bs_ut_dist=max_bs_ut_dist_vec[ii],
+                            min_ut_height=min_ut_height_vec[ii],
+                            max_ut_height=max_ut_height_vec[ii])
+            # [num_cells, num_ut_per_cell, 3]
+            ut_loc = flatten_dims(ut_loc, num_dims=2, axis=2)[0, ::].numpy()
+
+            cell_loc = grid.cell_loc.numpy()
+
+            for cell in range(grid.num_cells):
+                for ut in range(ut_loc.shape[1]):
+                    ut_cell_dist_3d = np.linalg.norm(cell_loc[cell, :] - ut_loc[cell, ut, :])
+                    ut_cell_dist_2d = np.linalg.norm(cell_loc[cell, :2] - ut_loc[cell, ut, :2])
+
+                    # 2D UT-cell center distance must be at most ISD / sqrt(2)
+                    self.assertLessEqual(ut_cell_dist_2d, grid.isd / np.sqrt(2))
+
+                    # 3D UT-cell center distance must be >= min_bs_ut_dist
+                    self.assertGreaterEqual(ut_cell_dist_2d, min_bs_ut_dist_vec[ii])
+
+                    # 3D UT-cell center distance must be ,= min_bs_ut_dist
+                    self.assertLessEqual(ut_cell_dist_2d, max_bs_ut_dist_vec[ii])
+
+    def test_wraparound(self):
+        """ Validate wraparound method against its non-TensorFlow
+        version """ 
+
+        def drop_uts(isd, room_length, room_width, batch_size, num_ut_per_sector, 
+                     min_bs_ut_dist, min_ut_height, max_ut_height):
+            grid = IndoorOfficeGrid(isd=isd,
+                                    room_length=room_length,
+                                    room_width=room_width,
+                                    precision='double')
+            # Drop users
+            ut_loc, cell_mirror_coord, wrap_dist_tf = \
+                grid(batch_size,
+                    num_ut_per_sector,
+                    min_bs_ut_dist,
+                    min_ut_height=min_ut_height,
+                    max_ut_height=max_ut_height)
+            return ut_loc, cell_mirror_coord, wrap_dist_tf
+        
+        @tf.function
+        def drop_uts_graph(isd, room_length, room_width, batch_size, num_ut_per_sector, 
+                     min_bs_ut_dist, min_ut_height, max_ut_height):
+            return drop_uts(isd, room_length, room_width, batch_size, num_ut_per_sector, 
+                     min_bs_ut_dist, min_ut_height, max_ut_height)
+
+        @tf.function(jit_compile=True)
+        def drop_uts_xla(isd, room_length, room_width, batch_size, num_ut_per_sector, 
+                     min_bs_ut_dist, min_ut_height, max_ut_height):
+            return drop_uts(isd, room_length, room_width, batch_size, num_ut_per_sector, 
+                     min_bs_ut_dist, min_ut_height, max_ut_height)
+        
+        fun_dict = {'eager': drop_uts,
+                    'graph': drop_uts_graph,
+                    'xla': drop_uts_xla}
+        batch_size = 1
+        num_ut_per_sector = 5
+        min_bs_ut_dist = 20
+        isd = 50
+        bs_height = 10
+        min_ut_height = 1
+        max_ut_height = 2
+        room_length = 200
+        room_width = 180
+
+        # generate grid also outside fun, since XLA does not allow for
+        # non-tensor outputs
+        grid = IndoorOfficeGrid(isd=isd,
+                           room_length=room_length,
+                           room_width=room_width,
+                           precision='double')
+        for mode, fun in fun_dict.items():
+            ut_loc, cell_mirror_coord, wrap_dist_tf = fun(
+                isd, room_length, room_width,
                 batch_size, num_ut_per_sector,
                 min_bs_ut_dist, min_ut_height, max_ut_height)
             

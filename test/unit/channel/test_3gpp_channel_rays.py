@@ -441,7 +441,7 @@ class TestRays(unittest.TestCase):
         TestRays.los_zoa['inho'] = {}
         TestRays.los_zod['inho'] = {}
         TestRays.mu_log_zsd['inho'] = {}
-        scenario = channel.tr38901.InHOpenOfficeScenario(fc, "low",
+        scenario = channel.tr38901.InHOpenOfficeScenario(fc, "none",
                                                ut_array, bs_array,
                                                "downlink",
                                                precision="double")

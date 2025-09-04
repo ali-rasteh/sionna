@@ -9,6 +9,7 @@ Multicell topology generation for Sionna SYS
 
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import math
 
 from sionna.phy.utils import insert_dims, scalar_to_shaped_tensor, \
     flatten_dims, sample_bernoulli
@@ -1346,7 +1347,7 @@ class IndoorOfficeGrid(Block):
     def room_length(self, value):
         tf.debugging.assert_greater(
             value, 0, message='The room length must be positive')
-        self._room_length = tf.cast(value, self.rdtype)
+        self._room_length = value
         if self.cell_radius is not None and self.room_width is not None:
             self._compute_grid()
             self._get_mirror_displacements()
@@ -1363,7 +1364,7 @@ class IndoorOfficeGrid(Block):
     def room_width(self, value):
         tf.debugging.assert_greater(
             value, 0, message='The room width must be positive')
-        self._room_width = tf.cast(value, self.rdtype)
+        self._room_width = value
         if self.cell_radius is not None and self.room_length is not None:
             self._compute_grid()
             self._get_mirror_displacements()
@@ -1382,7 +1383,21 @@ class IndoorOfficeGrid(Block):
         `float` : Radius of any square cell in the grid [m]
         """
         return self._cell_radius
-    
+
+    @cell_radius.setter
+    def cell_radius(self, value):
+        tf.debugging.assert_positive(
+            value,
+            message='The call radius must be positive')
+        self._cell_radius_float = value
+        self._cell_radius = tf.cast(value, self.rdtype)
+        self._isd = self.cell_radius * tf.cast(tf.math.sqrt(2.), self.rdtype)
+        for _, cell in self.grid.items():
+            cell.radius = self.cell_radius
+        if self._room_length is not None:
+            self._get_mirror_displacements()
+            self._get_mirror_cell_loc()
+
     @property
     def cell_length(self):
         """
@@ -1391,19 +1406,13 @@ class IndoorOfficeGrid(Block):
         of the square cell
         """
         return self._cell_radius * tf.cast(tf.math.sqrt(2.), self.rdtype)
-
-    @cell_radius.setter
-    def cell_radius(self, value):
-        tf.debugging.assert_positive(
-            value,
-            message='The call radius must be positive')
-        self._cell_radius = tf.cast(value, self.rdtype)
-        self._isd = self.cell_radius * tf.cast(tf.math.sqrt(2.), self.rdtype)
-        for _, cell in self.grid.items():
-            cell.radius = self.cell_radius
-        if self._room_length is not None:
-            self._get_mirror_displacements()
-            self._get_mirror_cell_loc()
+    
+    @property
+    def cell_length_float(self):
+        """
+        `float` : The float version of cell_length.
+        """
+        return self._cell_radius_float * math.sqrt(2.)
 
     @property
     def isd(self):
@@ -1417,6 +1426,7 @@ class IndoorOfficeGrid(Block):
         tf.debugging.assert_positive(
             value,
             message='The inter-site distance must be positive')
+        self._cell_radius_float = value / math.sqrt(2.)
         self._isd = tf.cast(value, self.rdtype)
         self._cell_radius = self.isd / tf.cast(tf.math.sqrt(2.), self.rdtype)
         for _, cell in self.grid.items():
@@ -1476,7 +1486,7 @@ class IndoorOfficeGrid(Block):
         ], dtype=tf.int32)
 
         # [9, 2]
-        self._mirror_displacements_euclid = tf.cast(offset_displacements, tf.float32) * self.cell_length
+        self._mirror_displacements_euclid = tf.cast(offset_displacements, self.rdtype) * self.cell_length
 
 
     def call(self,
@@ -1505,29 +1515,10 @@ class IndoorOfficeGrid(Block):
             min_bs_ut_dist, max_bs_ut_dist,
             message="min_bs_ut_dist must not exceed max_bs_ut_dist")
 
-        # Minimum cell-UT vertical distance
-        if (max_ut_height >= self.cell_height) and \
-                (min_ut_height <= self.cell_height):
-            cell_ut_min_dist_z = tf.cast(0, self.rdtype)
-        else:
-            cell_ut_min_dist_z = tf.minimum(
-                tf.abs(self.cell_height - min_ut_height),
-                tf.abs(self.cell_height - max_ut_height))
-
-        # Maximum cell-UT vertical distance
-        cell_ut_max_dist_z = tf.maximum(
-            tf.abs(self.cell_height - min_ut_height),
-            tf.abs(self.cell_height - max_ut_height))
-
-        # Force minimum BS-UT distance >= their height difference
-        # min_bs_ut_dist = tf.maximum(min_bs_ut_dist, cell_ut_min_dist_z)
-
         # Minimum squared distance between BS and UT on the X-Y plane
-        # r_min2 = min_bs_ut_dist**2 - cell_ut_min_dist_z**2
         r_min2 = min_bs_ut_dist**2
 
         # Maximum squared distance between BS and UT on the X-Y plane
-        # r_max2 = max_bs_ut_dist**2 - cell_ut_max_dist_z**2
         r_max2 = max_bs_ut_dist**2
 
         # Check the consistency of input parameters
@@ -1544,29 +1535,54 @@ class IndoorOfficeGrid(Block):
         cell_loc_bcast = insert_dims(cell_loc_bcast, num_dims=2, axis=2)
         cell_loc_bcast = tf.cast(cell_loc_bcast, self.rdtype)
 
+        # Random angles within half a PI/2 sector, between [-pi/4; pi/4]
+        # [batch_size, num_cells, 1, num_ut_per_sector]
+        alpha = config.tf_rng.uniform(shape=[batch_size,
+                                    self.num_cells,
+                                    1,  # n. sectors
+                                    num_ut_per_sector],
+                                    minval=-PI/4.,
+                                    maxval=PI/4.,
+                                    dtype=self.rdtype)
+
+        # Maximum distance (on the X-Y plane) from BS to a point in
+        # the sector, at each angle in alpha
+        r_max = tf.cast(self.isd, self.rdtype) / (2*tf.math.cos(alpha))
+        r_max = tf.minimum(r_max, tf.sqrt(r_max2))
+
+        distance = config.tf_rng.uniform(shape=[batch_size,
+                                        self.num_cells,
+                                        1,  # n. sectors
+                                        num_ut_per_sector],
+                                        minval=tf.sqrt(r_min2),
+                                        maxval=r_max,
+                                        dtype=self.rdtype)
+
+        # Add an offset to angles alpha depending on the sector they belong to
+        alpha_offset_choices = tf.constant([0, PI/2, PI, 3*PI/2], self.rdtype)
+        indices = config.tf_rng.uniform(shape=[batch_size,
+                                               self.num_cells,
+                                               1,
+                                               num_ut_per_sector],
+                                        minval=0, maxval=4, dtype=tf.int32)
+        alpha_offset = tf.gather(alpha_offset_choices, indices)
+        alpha = alpha + alpha_offset
+
         # Compute UT locations on the X-Y plane
         # [batch_size, num_cells, 1, num_ut_per_sector, 2]
-        # ut_loc = tf.stack([distance * tf.math.cos(alpha),
-        #                    distance * tf.math.sin(alpha)], axis=-1)
-        ut_loc = config.tf_rng.uniform(shape=[batch_size,
-                                              self.num_cells,
-                                              1,  # num_sectors
-                                              num_ut_per_sector,
-                                              2],
-                                       minval=-self.isd/2,
-                                       maxval=self.isd/2,
-                                       dtype=self.rdtype)
+        ut_loc = tf.stack([distance * tf.math.cos(alpha),
+                           distance * tf.math.sin(alpha)], axis=-1)
         ut_loc = ut_loc + cell_loc_bcast[..., :2]
 
         # Add 3rd dimension
-        # [batch_size, num_cells, 3, num_ut_per_sector, 3]
+        # [batch_size, num_cells, 1, num_ut_per_sector, 3]
         ut_loc_z = config.tf_rng.uniform(shape=ut_loc.shape[:-1] + [1],
                                          minval=min_ut_height,
                                          maxval=max_ut_height,
                                          dtype=self.rdtype)
         ut_loc = tf.concat([ut_loc,
                             ut_loc_z], axis=-1)
-
+        
         # ------------#
         # Wraparound #
         # ------------#
@@ -1618,8 +1634,8 @@ class IndoorOfficeGrid(Block):
         """
         self._grid = {}
 
-        num_cells_in_length = int(self.room_length / self.cell_length)
-        num_cells_in_width = int(self.room_width / self.cell_length)
+        num_cells_in_length = int(self.room_length / self.cell_length_float)
+        num_cells_in_width = int(self.room_width / self.cell_length_float)
 
         distance_from_walls_lr = (self.room_length - num_cells_in_length * self.cell_length) / 2
         distance_from_walls_tb = (self.room_width - num_cells_in_width * self.cell_length) / 2
@@ -1644,7 +1660,6 @@ class IndoorOfficeGrid(Block):
 
                 # Add the cell to the grid
                 self._grid[len(self._grid)] = cell
-
 
     def show(self,
              show_mirrors=False,
