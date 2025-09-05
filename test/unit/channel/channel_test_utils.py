@@ -108,7 +108,6 @@ def channel_test_on_models(models, submodels, exclude=None):
             for model in models:
                 for submodel in submodels:
                     if (model, submodel) in exclude:
-                        # self.skipTest(f"Excluded: {model}:{submodel}")
                         continue
                     else:
                         func(self, model, submodel, *args, **kwargs)
@@ -129,7 +128,7 @@ def log10DS(model, submodel, fc):
     Input:
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -179,7 +178,7 @@ def log10ASD(model, submodel, fc):
     Input:
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -228,7 +227,7 @@ def log10ASA(model, submodel, fc):
     Input:
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -280,7 +279,7 @@ def log10ZSA(model, submodel, fc):
     Input:
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -332,7 +331,7 @@ def log10SF_dB(model, submodel, d_2d, fc, h_bs, h_ut):
     Input:
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -396,7 +395,7 @@ def log10K_dB(model, submodel):
     Input:
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -437,7 +436,7 @@ def log10ED(model, submodel):
     Input:
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -489,7 +488,7 @@ def log10ZSD(model, submodel, d_2d, fc, h_bs, h_ut):
     Input:
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -570,7 +569,7 @@ def cross_corr(model, submodel):
     Input
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -702,7 +701,7 @@ def corr_dist_ds(model, submodel):
     Input
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -739,7 +738,7 @@ def corr_dist_asd(model, submodel):
     Input
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -776,7 +775,7 @@ def corr_dist_asa(model, submodel):
     Input
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -813,7 +812,7 @@ def corr_dist_sf(model, submodel):
     Input
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -850,7 +849,7 @@ def corr_dist_k(model, submodel):
     Input
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -878,7 +877,7 @@ def corr_dist_ed(model, submodel):
     Input
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -915,7 +914,7 @@ def corr_dist_zsa(model, submodel):
     Input
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -952,7 +951,7 @@ def corr_dist_zsd(model, submodel):
     Input
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -1186,7 +1185,7 @@ def umi_o2i_pathloss(d_2d, d_3d, fc, h_bs, h_ut, o2i_model):
         UT height [m]
 
     o2i_model : str
-        O2I loss model. Must be 'low' or 'high'
+        O2I loss model. Must be 'low', 'high', or 'car_nonmetal'
 
     Output
     -------
@@ -1198,10 +1197,15 @@ def umi_o2i_pathloss(d_2d, d_3d, fc, h_bs, h_ut, o2i_model):
         pltw = 5.0-10.0*np.log10(0.3*np.power(10.0, (-2.-0.2*fc/1e9)/10.0)\
             + 0.7*np.power(10.0, (-5.-4.*fc/1e9)/10.0))
         return umi_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut) + pltw + 0.5*indoor_distance_mean
-    else:
+    elif o2i_model == 'high':
         pltw = 5.0-10.0*np.log10(0.7*np.power(10.0, (-23.-0.3*fc/1e9)/10.0)\
             + 0.3*np.power(10.0, (-5.-4.*fc/1e9)/10.0))
         return umi_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut) + pltw + 0.5*indoor_distance_mean
+    elif o2i_model == 'car_nonmetal':
+        mu = 9.0
+        return umi_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut) + mu
+    else:
+        raise ValueError("o2i_model must be 'low', 'high', or 'car_nonmetal'")
 
 def uma_los_pathloss(d_2d, d_3d, fc, h_bs, h_ut):
     r"""
@@ -1291,7 +1295,7 @@ def uma_o2i_pathloss(d_2d, d_3d, fc, h_bs, h_ut, o2i_model):
         UT height [m]
 
     o2i_model : str
-        O2I loss model. Must be 'low' or 'high'
+        O2I loss model. Must be 'low', 'high', or 'car_nonmetal'
 
     Output
     -------
@@ -1303,10 +1307,15 @@ def uma_o2i_pathloss(d_2d, d_3d, fc, h_bs, h_ut, o2i_model):
         pltw = 5.0-10.0*np.log10(0.3*np.power(10.0, (-2.-0.2*fc/1e9)/10.0)\
             + 0.7*np.power(10.0, (-5.-4.*fc/1e9)/10.0))
         return uma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut) + pltw + 0.5*indoor_distance_mean
-    else:
+    elif o2i_model == 'high':
         pltw = 5.0-10.0*np.log10(0.7*np.power(10.0, (-23.-0.3*fc/1e9)/10.0)\
             + 0.3*np.power(10.0, (-5.-4.*fc/1e9)/10.0))
         return uma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut) + pltw + 0.5*indoor_distance_mean
+    elif o2i_model == 'car_nonmetal':
+        mu = 9.0
+        return uma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut) + mu
+    else:
+        raise ValueError("o2i_model must be 'low', 'high', or 'car_nonmetal'")
     
 def sma_los_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w):
     r"""
@@ -1416,7 +1425,7 @@ def sma_o2i_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w, o2i_model):
         Average street width
     
     o2i_model : str
-        O2I loss model. Must be 'low', 'high' or 'low-A'
+        O2I loss model. Must be 'low', 'high', 'low-A', or 'car_nonmetal'
 
     Output
     -------
@@ -1436,6 +1445,11 @@ def sma_o2i_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w, o2i_model):
         pltw = 5.0-10.0*np.log10(0.3*np.power(10.0, (-2.-0.2*fc/1e9)/10.0)\
             + 0.7*np.power(10.0, (-1.03-0.17*fc/1e9)/10.0))
         return sma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w) + pltw + 0.5*indoor_distance_mean
+    elif o2i_model == 'car_nonmetal':
+        mu = 9.0
+        return sma_nlos_pathloss(d_2d, d_3d, fc, h_bs, h_ut, h, w) + mu
+    else:
+        raise ValueError("o2i_model must be 'low', 'high', 'low-A', or 'car_nonmetal'")
 
 def inho_los_pathloss(d_3d, fc):
     r"""
@@ -1485,7 +1499,7 @@ def pathloss(model, submodel, *args):
     Input
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -1540,14 +1554,15 @@ def pathloss_std(model, submodel, o2i_model=None):
     Input
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
 
     o2i_model : str
-        O2I loss model. One of 'low' or 'high'. Only required for O2I with UMi
-        and UMa.
+        O2I loss model. One of 'low', 'high', 'low-A', 'car_nonmetal'.
+        Only required for O2I with UMi, UMa, and SMa.
+        'low-A' is only valid for SMa.
         Let to `None` if not required. Defaults to `None`.
 
     Output
@@ -1574,6 +1589,8 @@ def pathloss_std(model, submodel, o2i_model=None):
                 return np.sqrt((4.4**2)+0.25*indoor_distance_var)
             elif o2i_model == 'high':
                 return np.sqrt((6.5**2)+0.25*indoor_distance_var)
+            elif o2i_model == 'car_nonmetal':
+                return 5.0
     elif model == 'uma':
         if submodel == 'los':
             return 0.0
@@ -1585,6 +1602,8 @@ def pathloss_std(model, submodel, o2i_model=None):
                 return np.sqrt((4.4**2)+0.25*indoor_distance_var)
             elif o2i_model == 'high':
                 return np.sqrt((6.5**2)+0.25*indoor_distance_var)
+            elif o2i_model == 'car_nonmetal':
+                return 5.0
     elif model == 'sma':
         if submodel == 'los':
             return 0.0
@@ -1599,6 +1618,8 @@ def pathloss_std(model, submodel, o2i_model=None):
                 return np.sqrt((6.5**2)+0.25*indoor_distance_var)
             elif o2i_model == 'low-A':
                 return np.sqrt((4.4**2)+0.25*indoor_distance_var)
+            elif o2i_model == 'car_nonmetal':
+                return 5.0
     elif model == 'inho':
         if submodel == 'los':
             return 0.0
@@ -1614,7 +1635,7 @@ def zod_offset(model, submodel, fc, d_2d, h_ut, h_bs=None):
     Input
     ------
     model : str
-        One of 'rma', 'umi', or 'uma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     submodel : str
         One of 'los', 'nlos', 'o2i'
@@ -1686,7 +1707,7 @@ def los_probability(model, d_2d_out, h_ut, h_bs=None, d_2d_in=None):
     Input
     ------
     model : str
-        Model. Should be one of 'umi', 'uma', or 'rma'
+        One of 'rma', 'umi', 'uma', 'sma', or 'inho'
 
     d_2d_out : any shape, float
         Outdoor distance

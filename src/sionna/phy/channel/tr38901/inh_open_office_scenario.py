@@ -38,7 +38,7 @@ class InHOpenOfficeScenario(SystemLevelScenario):
     enable_shadow_fading : `bool`, (default `True`)
         If `True`, apply shadow fading. Otherwise doesn't.
 
-    o2i_car_model : `None` (default) | "non-metalic"
+    o2i_car_model : `None`
         Outdoor to indoor (O2I) car pathloss model, used for outdoor UTs,
         see section 7.4.3.2 from 38.901 specification.
 

@@ -45,12 +45,14 @@ class SMa(SystemLevelChannel):
     >>> # ut_orientations: UTs array orientations
     >>> # bs_orientations: BSs array orientations
     >>> # in_state: Indoor/outdoor states of UTs
+    >>> # residential_state: Residential states of UTs
     >>> channel_model.set_topology(ut_loc,
     ...                            bs_loc,
     ...                            ut_orientations,
     ...                            bs_orientations,
     ...                            ut_velocities,
-    ...                            in_state)
+    ...                            in_state,
+    ...                            residential_state)
     >>> # Instanting the OFDM channel
     >>> channel = OFDMChannel(channel_model = channel_model,
     ...                       resource_grid = rg)
@@ -62,19 +64,15 @@ class SMa(SystemLevelChannel):
     carrier_frequency : `float`
         Carrier frequency in Hertz
 
-    o2i_model : "low" | "high"
-        Outdoor-to-indoor loss model for UTs located indoor.
-        Set this parameter to "low" to use the low-loss model, or to "high"
-        to use the high-loss model.
-        See section 7.4.3 of [TR38901]_ for details.
+    o2i_model : "low" | "high" | "low-A" | "50/50" | "none"
+        Outdoor to indoor (O2I) pathloss model, used for indoor UTs,
+        see section 7.4.3 from 38.901 specification
 
-    rx_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
-        Panel array used by the receivers. All receivers share the same
-        antenna array configuration.
+    ut_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
+        Panel array configuration used by UTs
 
-    tx_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
-        Panel array used by the transmitters. All transmitters share the
-        same antenna array configuration.
+    bs_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
+        Panel array configuration used by BSs
 
     direction : "uplink" | "downlink"
         Link direction
@@ -91,9 +89,15 @@ class SMa(SystemLevelChannel):
         the same LSPs, except if the topology is changed.
 
     o2i_car_model : `None` (default) | "non-metalic"
-        Outdoor-to-indoor car loss model for UTs located outdoor.
-        Set this parameter to "non-matalic" to use the non-metalic-loss model.
-        See section 7.4.3 of [TR38901]_ for details.
+        Outdoor to indoor (O2I) car pathloss model, used for outdoor UTs,
+        see section 7.4.3 from 38.901 specification
+
+    vegetation : `None` (default) | "no" | "sparse" | "dense"
+        Vegetation density around the BSs. If `None`, it is set to "no".
+        See section 7.4.2 of [TR38901]_ for details.
+
+    calibration_mode : `bool`, (default `False`)
+        If `True`, enable calibration mode. Default is `False`.
         
     near_field : `bool`, (default `False`)
         If `True`, use near-field approximation for the antenna arrays.

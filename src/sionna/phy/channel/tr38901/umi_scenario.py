@@ -19,7 +19,7 @@ class UMiScenario(SystemLevelScenario):
     carrier_frequency : `float`
         Carrier frequency [Hz]
 
-    o2i_model : "low" | "high"
+    o2i_model : "low" | "high" | "50/50" | "none"
         Outdoor to indoor (O2I) pathloss model, used for indoor UTs,
         see section 7.4.3 from 38.901 specification
 
@@ -38,6 +38,16 @@ class UMiScenario(SystemLevelScenario):
     enable_shadow_fading : `bool`, (default `True`)
         If `True`, apply shadow fading. Otherwise doesn't.
 
+    o2i_car_model : `None` (default) | "non-metalic"
+        Outdoor to indoor (O2I) car pathloss model, used for outdoor UTs,
+        see section 7.4.3.2 from 38.901 specification.
+
+    release_number : "18" (default) | "19"
+        Release number of the 3GPP specification to use.
+
+    calibration_mode : `bool`, (default `False`)
+        If `True`, enable calibration mode. Default is `False`.
+        
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
         If set to `None`,
@@ -45,15 +55,16 @@ class UMiScenario(SystemLevelScenario):
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
         direction, enable_pathloss=True, enable_shadow_fading=True,
-        release_number="18", calibration_mode=False, precision=None):
+        o2i_car_model=None, release_number="18", calibration_mode=False,
+        precision=None):
 
         assert carrier_frequency > 0.5e9 and carrier_frequency < 100e9, \
             "UMi scenario is only defined for carrier frequencies > 0.5 GHz and < 100 GHz"
-        assert o2i_model in ('low', 'high', '50/50'), \
-            "o2i_model must be 'low', 'high', or '50/50'"
+        assert o2i_model in ('low', 'high', '50/50', 'none'), \
+            "o2i_model must be 'low', 'high', '50/50', or 'none'"
 
         super().__init__(carrier_frequency, o2i_model, ut_array, bs_array,
-            direction, enable_pathloss, enable_shadow_fading, None, release_number, 
+            direction, enable_pathloss, enable_shadow_fading, o2i_car_model, release_number, 
             calibration_mode, precision)
 
     #########################################

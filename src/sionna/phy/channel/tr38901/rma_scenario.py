@@ -20,13 +20,11 @@ class RMaScenario(SystemLevelScenario):
     carrier_frequency : `float`
         Carrier frequency [Hz]
 
-    rx_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
-        Panel array used by the receivers. All receivers share the same
-        antenna array configuration.
+    ut_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
+        Panel array configuration used by UTs
 
-    tx_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
-        Panel array used by the transmitters. All transmitters share the
-        same antenna array configuration.
+    bs_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
+        Panel array configuration used by BSs
 
     direction : "uplink" |"downlink"
         Link direction
@@ -42,11 +40,13 @@ class RMaScenario(SystemLevelScenario):
 
     average_buiding_height : `float`, (default 5.0)
         Average building height [m]
+    
+    o2i_car_model : `None` (default) | "non-metalic"
+        Outdoor to indoor (O2I) car pathloss model, used for outdoor UTs,
+        see section 7.4.3.2 from 38.901 specification.
 
-    always_generate_lsp : `bool`, (default `False`)
-        If `True`, new large scale parameters (LSPs) are generated for every
-        new generation of channel impulse responses. Otherwise, always reuse
-        the same LSPs, except if the topology is changed. 
+    calibration_mode : `bool`, (default `False`)
+        If `True`, enable calibration mode. Default is `False`.
 
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
@@ -57,14 +57,14 @@ class RMaScenario(SystemLevelScenario):
     def __init__(self, carrier_frequency, ut_array, bs_array,
         direction, enable_pathloss=True, enable_shadow_fading=True,
         average_street_width=20.0, average_building_height=5.0,
-        calibration_mode=False, precision=None):
+        o2i_car_model=None, calibration_mode=False, precision=None):
 
         assert carrier_frequency > 0.5e9 and carrier_frequency < 30e9, \
             "RMa scenario is only defined for carrier frequencies > 0.5 GHz and < 30 GHz"
         
         # Only the low-loss O2I model if available for RMa.
         super().__init__(carrier_frequency, 'low', ut_array, bs_array,
-            direction, enable_pathloss, enable_shadow_fading,
+            direction, enable_pathloss, enable_shadow_fading, o2i_car_model,
             calibration_mode=calibration_mode, precision=precision)
 
         # Average street width [m]

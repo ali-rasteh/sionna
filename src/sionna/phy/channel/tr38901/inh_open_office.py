@@ -67,13 +67,11 @@ class InHOpenOffice(SystemLevelChannel):
         Set this parameter to "none" as this scenario does not support O2I loss.
         See section 7.4.3 of [TR38901]_ for details.
 
-    rx_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
-        Panel array used by the receivers. All receivers share the same
-        antenna array configuration.
+    ut_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
+        Panel array configuration used by UTs
 
-    tx_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
-        Panel array used by the transmitters. All transmitters share the
-        same antenna array configuration.
+    bs_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
+        Panel array configuration used by BSs
 
     direction : "uplink" | "downlink"
         Link direction
@@ -89,11 +87,15 @@ class InHOpenOffice(SystemLevelChannel):
         new generation of channel impulse responses. Otherwise, always reuse
         the same LSPs, except if the topology is changed.
 
+    o2i_car_model : `None` (default) | "non-metalic"
+        Outdoor to indoor (O2I) car pathloss model, used for outdoor UTs,
+        see section 7.4.3.2 from 38.901 specification.
+
     release_number : "18" (default) | "19"
         Release number of the 3GPP specification to use.
 
     calibration_mode : `bool`, (default `False`)
-        If `True`, use calibration mode for the antenna arrays.
+        If `True`, enable calibration mode. Default is `False`.
 
     near_field : `bool`, (default `False`)
         If `True`, use near-field approximation for the antenna arrays.
@@ -121,12 +123,12 @@ class InHOpenOffice(SystemLevelChannel):
     """
     def __init__(self, carrier_frequency, o2i_model, ut_array, bs_array,
         direction, enable_pathloss=True, enable_shadow_fading=True,
-        always_generate_lsp=False, release_number="18", calibration_mode=False,
-        near_field=False, precision=None):
+        always_generate_lsp=False, o2i_car_model=None, release_number="18",
+        calibration_mode=False, near_field=False, precision=None):
 
         # RMa scenario
         scenario = InHOpenOfficeScenario(carrier_frequency, o2i_model, ut_array, bs_array,
-                               direction, enable_pathloss, enable_shadow_fading, None,
+                               direction, enable_pathloss, enable_shadow_fading, o2i_car_model,
                                release_number, calibration_mode, precision)
 
         super().__init__(scenario, always_generate_lsp, near_field)

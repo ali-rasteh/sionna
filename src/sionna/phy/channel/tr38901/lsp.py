@@ -655,10 +655,10 @@ class LSPGenerator(Object):
         num_bs = self._scenario.num_bs
 
         # Filtering-out the O2I pathloss for UTs located outdoor
-        outdoor_mask = tf.where(self._scenario.indoor, tf.constant(0.0,
-            self.rdtype), tf.ones([batch_size, num_ut],
+        indoor_mask = tf.where(self._scenario.indoor, tf.constant(1.0,
+            self.rdtype), tf.zeros([batch_size, num_ut],
             self.rdtype))
-        outdoor_mask = tf.expand_dims(outdoor_mask, axis=1)
+        indoor_mask = tf.expand_dims(indoor_mask, axis=1)
 
         # Random path loss component
         # Gaussian distributed with standard deviation 4.4 in dB
@@ -666,6 +666,6 @@ class LSPGenerator(Object):
                                       mean=9.0,
                                       stddev=5.0,
                                       dtype=self.rdtype)
-        pl_rnd = pl_rnd*outdoor_mask
+        pl_rnd = pl_rnd*indoor_mask
 
         return pl_rnd

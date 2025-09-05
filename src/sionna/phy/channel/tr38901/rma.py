@@ -62,13 +62,11 @@ class RMa(SystemLevelChannel):
     carrier_frequency : `float`
         Carrier frequency [Hz]
 
-    rx_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
-        Panel array used by the receivers. All receivers share the same
-        antenna array configuration.
+    ut_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
+        Panel array configuration used by UTs
 
-    tx_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
-        Panel array used by the transmitters. All transmitters share the
-        same antenna array configuration.
+    bs_array : :class:`~sionna.phy.channel.tr38901.PanelArray`
+        Panel array configuration used by BSs
 
     direction : "uplink" | "downlink"
         Link direction
@@ -89,6 +87,13 @@ class RMa(SystemLevelChannel):
         If `True`, new large scale parameters (LSPs) are generated for every
         new generation of channel impulse responses. Otherwise, always reuse
         the same LSPs, except if the topology is changed. 
+
+    o2i_car_model : `None` (default) | "non-metalic"
+        Outdoor to indoor (O2I) car pathloss model, used for outdoor UTs,
+        see section 7.4.3.2 from 38.901 specification.
+
+    calibration_mode : `bool`, (default `False`)
+        If `True`, enable calibration mode. Default is `False`.
 
     near_field : `bool`, (default `False`)
         If `True`, use near-field approximation for the antenna arrays.
@@ -117,13 +122,14 @@ class RMa(SystemLevelChannel):
     def __init__(self, carrier_frequency, ut_array, bs_array,
         direction, enable_pathloss=True, enable_shadow_fading=True,
         average_street_width=20.0, average_building_height=5.0,
-        always_generate_lsp=False, near_field=False,
-        calibration_mode=False, precision=None):
+        always_generate_lsp=False, o2i_car_model=None,
+        calibration_mode=False, near_field=False, precision=None):
 
         # RMa scenario
         scenario = RMaScenario(carrier_frequency, ut_array, bs_array,
             direction, enable_pathloss, enable_shadow_fading,
             average_street_width, average_building_height,
+            o2i_car_model=o2i_car_model,
             calibration_mode=calibration_mode, precision=precision)
 
         super().__init__(scenario, always_generate_lsp, near_field, precision=precision)

@@ -19,7 +19,7 @@ class SMaScenario(SystemLevelScenario):
     carrier_frequency : `float`
         Carrier frequency [Hz]
 
-    o2i_model : "low" | "high" | "low-A" | "50/50"
+    o2i_model : "low" | "high" | "low-A" | "50/50" | "none"
         Outdoor to indoor (O2I) pathloss model, used for indoor UTs,
         see section 7.4.3 from 38.901 specification
 
@@ -42,6 +42,13 @@ class SMaScenario(SystemLevelScenario):
         Outdoor to indoor (O2I) car pathloss model, used for outdoor UTs,
         see section 7.4.3 from 38.901 specification
 
+    vegetation : `None` (default) | "no" | "sparse" | "dense"
+        Vegetation density around the BSs. If `None`, it is set to "no".
+        See section 7.4.2 of [TR38901]_ for details.
+
+    calibration_mode : `bool`, (default `False`)
+        If `True`, enable calibration mode. Default is `False`.
+
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
         If set to `None`,
@@ -55,8 +62,8 @@ class SMaScenario(SystemLevelScenario):
         assert carrier_frequency > 0.5e9 and carrier_frequency < 37e9, \
             "SMa scenario is only defined for carrier frequencies > 0.5 GHz and < 37 GHz"
         
-        assert o2i_model in ('low', 'high', 'low-A', '50/50'), \
-            "o2i_model must be 'low', 'high', 'low-A' or '50/50'"
+        assert o2i_model in ('low', 'high', 'low-A', '50/50', 'none'), \
+            "o2i_model must be 'low', 'high', 'low-A', '50/50', or 'none'"
 
         # SMa is only defined for release 19
         super().__init__(carrier_frequency, o2i_model, ut_array, bs_array,

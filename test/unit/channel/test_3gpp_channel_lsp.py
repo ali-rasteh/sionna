@@ -322,23 +322,6 @@ class TestLSP(unittest.TestCase):
         TestLSP.sma_w = 10.
         TestLSP.sma_h = 10.
 
-        # Sample pathlosses with high O2I loss model. Only with UMi and UMa
-        ####### SMa-high
-        scenario = channel.tr38901.SMaScenario(fc,
-                                               "high",
-                                               ut_array,
-                                               bs_array,
-                                               "uplink",
-                                               vegetation="sparse",
-                                               precision="double")
-        lsp_sampler = channel.tr38901.LSPGenerator(scenario)
-        in_state = generate_random_bool(batch_size, nb_ut, 1.0)
-        residential_state = generate_random_bool(batch_size, nb_ut, 0.0)
-        scenario.set_topology(ut_loc, bs_loc, ut_orientations, bs_orientations,
-                              ut_velocities, in_state, None, residential_state=residential_state)
-        lsp_sampler.topology_updated_callback()
-        TestLSP.pathlosses['sma']['o2i-high'] = lsp_sampler.sample_pathloss()[:,0,:]
-
         ####### SMa-low-A
         scenario = channel.tr38901.SMaScenario(fc,
                                                "low-A",
@@ -354,6 +337,23 @@ class TestLSP(unittest.TestCase):
                               ut_velocities, in_state, None, residential_state=residential_state)
         lsp_sampler.topology_updated_callback()
         TestLSP.pathlosses['sma']['o2i-low-A'] = lsp_sampler.sample_pathloss()[:,0,:]
+
+        # Sample pathlosses with high O2I loss model. Only with UMi, UMa and SMa
+        ####### SMa-high
+        scenario = channel.tr38901.SMaScenario(fc,
+                                               "high",
+                                               ut_array,
+                                               bs_array,
+                                               "uplink",
+                                               vegetation="sparse",
+                                               precision="double")
+        lsp_sampler = channel.tr38901.LSPGenerator(scenario)
+        in_state = generate_random_bool(batch_size, nb_ut, 1.0)
+        residential_state = generate_random_bool(batch_size, nb_ut, 0.0)
+        scenario.set_topology(ut_loc, bs_loc, ut_orientations, bs_orientations,
+                              ut_velocities, in_state, None, residential_state=residential_state)
+        lsp_sampler.topology_updated_callback()
+        TestLSP.pathlosses['sma']['o2i-high'] = lsp_sampler.sample_pathloss()[:,0,:]
 
         ####### UMi-High
         scenario = channel.tr38901.UMiScenario(fc,
@@ -383,6 +383,54 @@ class TestLSP(unittest.TestCase):
         lsp_sampler.topology_updated_callback()
         TestLSP.pathlosses['uma']['o2i-high'] = lsp_sampler.sample_pathloss()[:,0,:]
 
+        # Sample pathlosses with car O2I loss model. Only with UMi, UMa and SMa
+        ####### SMa-low-car non-metalic
+        scenario = channel.tr38901.SMaScenario(fc,
+                                               "none",
+                                               ut_array,
+                                               bs_array,
+                                               "uplink",
+                                               o2i_car_model="non-metalic",
+                                               vegetation="sparse",
+                                               precision="double")
+        lsp_sampler = channel.tr38901.LSPGenerator(scenario)
+        in_state = generate_random_bool(batch_size, nb_ut, 1.0)
+        residential_state = generate_random_bool(batch_size, nb_ut, 0.0)
+        scenario.set_topology(ut_loc, bs_loc, ut_orientations, bs_orientations,
+                              ut_velocities, in_state, None, residential_state=residential_state)
+        lsp_sampler.topology_updated_callback()
+        TestLSP.pathlosses['sma']['o2i-car_nonmetal'] = lsp_sampler.sample_pathloss()[:,0,:]
+
+        ####### UMi-car non-metalic
+        scenario = channel.tr38901.UMiScenario(fc,
+                                               "none",
+                                               ut_array,
+                                               bs_array,
+                                               "uplink",
+                                               o2i_car_model="non-metalic",
+                                               precision="double")
+        lsp_sampler = channel.tr38901.LSPGenerator(scenario)
+        in_state = generate_random_bool(batch_size, nb_ut, 1.0)
+        scenario.set_topology(ut_loc, bs_loc, ut_orientations, bs_orientations,
+                              ut_velocities, in_state)
+        lsp_sampler.topology_updated_callback()
+        TestLSP.pathlosses['umi']['o2i-car_nonmetal'] = lsp_sampler.sample_pathloss()[:,0,:]
+
+        ####### UMa-car non-metalic
+        scenario = channel.tr38901.UMaScenario(fc,
+                                               "none",
+                                               ut_array,
+                                               bs_array,
+                                               "uplink",
+                                               o2i_car_model="non-metalic",
+                                               precision="double")
+        lsp_sampler = channel.tr38901.LSPGenerator(scenario)
+        in_state = generate_random_bool(batch_size, nb_ut, 1.0)
+        scenario.set_topology(ut_loc, bs_loc, ut_orientations, bs_orientations,
+                              ut_velocities, in_state)
+        lsp_sampler.topology_updated_callback()
+        TestLSP.pathlosses['uma']['o2i-car_nonmetal'] = lsp_sampler.sample_pathloss()[:,0,:]
+        
         # The following values do not depend on the scenario
         TestLSP.d_2d = scenario.distance_2d.numpy()
         TestLSP.d_2d_ut = scenario.matrix_ut_distance_2d.numpy()
@@ -678,7 +726,7 @@ class TestLSP(unittest.TestCase):
                 f"{model}:{submodel}")
         elif model == 'umi':
             if submodel == 'o2i':
-                for loss_model in ('low', 'high'):
+                for loss_model in ('low', 'high', 'car_nonmetal'):
                     samples = TestLSP.pathlosses[model][submodel+'-'+loss_model]
                     mean_samples = tf.reduce_mean(samples, axis=0).numpy()
                     std_samples = tf.math.reduce_std(samples, axis=0).numpy()
@@ -693,7 +741,7 @@ class TestLSP(unittest.TestCase):
                         f"{model}:{submodel}")
                     max_err = np.max(np.abs(std_samples-pathloss_std(model, submodel, loss_model)))
                     self.assertLessEqual(max_err, TestLSP.MAX_ERR_PATHLOSS_STD,
-                        f"{model}:{submodel}")
+                        f"{model}:{submodel}:{loss_model}")
             else:
                 samples = TestLSP.pathlosses[model][submodel]
                 mean_samples = tf.reduce_mean(samples, axis=0).numpy()
@@ -712,7 +760,7 @@ class TestLSP(unittest.TestCase):
                     f"{model}:{submodel}")
         elif model == 'uma':
             if submodel == 'o2i':
-                for loss_model in ('low', 'high'):
+                for loss_model in ('low', 'high', 'car_nonmetal'):
                     samples = TestLSP.pathlosses[model][submodel+'-'+loss_model]
                     mean_samples = tf.reduce_mean(samples, axis=0).numpy()
                     std_samples = tf.math.reduce_std(samples, axis=0).numpy()
@@ -727,7 +775,7 @@ class TestLSP(unittest.TestCase):
                         f"{model}:{submodel}")
                     max_err = np.max(np.abs(std_samples-pathloss_std(model, submodel, loss_model)))
                     self.assertLessEqual(max_err, TestLSP.MAX_ERR_PATHLOSS_STD,
-                        f"{model}:{submodel}")
+                        f"{model}:{submodel}:{loss_model}")
             else:
                 samples = TestLSP.pathlosses[model][submodel]
                 mean_samples = tf.reduce_mean(samples, axis=0).numpy()
@@ -746,7 +794,7 @@ class TestLSP(unittest.TestCase):
                     f"{model}:{submodel}")
         elif model == 'sma':
             if submodel == 'o2i':
-                for loss_model in ('low', 'high', 'low-A'):
+                for loss_model in ('low', 'high', 'low-A', 'car_nonmetal'):
                     samples = TestLSP.pathlosses[model][submodel+'-'+loss_model]
                     mean_samples = tf.reduce_mean(samples, axis=0).numpy()
                     std_samples = tf.math.reduce_std(samples, axis=0).numpy()
@@ -763,7 +811,7 @@ class TestLSP(unittest.TestCase):
                         f"{model}:{submodel}")
                     max_err = np.max(np.abs(std_samples-pathloss_std(model, submodel, loss_model)))
                     self.assertLessEqual(max_err, TestLSP.MAX_ERR_PATHLOSS_STD,
-                        f"{model}:{submodel}")
+                        f"{model}:{submodel}:{loss_model}")
             else:
                 samples = TestLSP.pathlosses[model][submodel]
                 mean_samples = tf.reduce_mean(samples, axis=0).numpy()
